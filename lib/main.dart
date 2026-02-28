@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:ms_app/Home/home.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/api/api_client.dart';
+import 'core/utils/storage_service.dart';
+import 'features/auth/repository/auth_repository.dart';
+import 'features/auth/bloc/auth_bloc.dart';
+import 'features/auth/bloc/auth_state.dart';
+import 'features/auth/screens/splash_screen.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'routes/role_based_router.dart';
 
 void main() {
-  runApp(MsApp());
+  runApp(const MsApp());
 }
 
 class MsApp extends StatelessWidget {
@@ -10,9 +18,33 @@ class MsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Home(),
+    final storageService = StorageService();
+    final apiClient = ApiClient(getToken: () => storageService.getToken());
+    final authRepository = AuthRepository(
+      apiClient: apiClient,
+      storageService: storageService,
+    );
+
+    return BlocProvider(
+      create: (context) => AuthBloc(authRepository: authRepository),
+      child: MaterialApp(
+        title: 'MS App',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          useMaterial3: true,
+        ),
+        home: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is AuthInitial || state is AuthLoading) {
+              return const SplashScreen();
+            } else if (state is AuthAuthenticated) {
+              return RoleBasedRouter.getHomeScreen(state.user);
+            } else {
+              return const LoginScreen();
+            }
+          },
+        ),
+      ),
     );
   }
 }
-
