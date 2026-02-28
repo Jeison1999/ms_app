@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import '../core/api/api_client.dart';
 import '../features/auth/models/user_model.dart';
-import '../features/marketing/screens/marketing_home_screen.dart';
+import '../features/marketing/marketing_home/screen.dart';
 import '../features/consolidator/screens/consolidator_home_screen.dart';
 import '../features/sales/screens/sales_home_screen.dart';
 import '../features/accounting/screens/accounting_home_screen.dart';
 import '../features/admin/screens/admin_home_screen.dart';
 
+// Esta clase se encarga de determinar qué pantalla mostrar según el rol del usuario
 class RoleBasedRouter {
-  static Widget getHomeScreen(UserModel user) {
+  static Widget getHomeScreen(UserModel user, {required ApiClient apiClient}) {
     // Administrador tiene acceso a todo
     if (user.isAdmin) {
-      return const AdminHomeScreen();
+      return AdminHomeScreen(apiClient: apiClient);
     }
 
     // Content Manager -> Marketing
     if (user.isContentManager) {
-      return const MarketingHomeScreen();
+      return MarketingHomeScreen(apiClient: apiClient);
     }
 
     // User Manager -> Consolidador

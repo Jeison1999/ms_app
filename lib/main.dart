@@ -38,7 +38,7 @@ class MsApp extends StatelessWidget {
             if (state is AuthInitial || state is AuthLoading) {
               return const SplashScreen();
             } else if (state is AuthAuthenticated) {
-              return RoleBasedRouter.getHomeScreen(state.user);
+              return RoleBasedRouter.getHomeScreen(state.user, apiClient: apiClient);
             } else {
               return const LoginScreen();
             }
