@@ -156,6 +156,24 @@ class _EventDetailViewState extends State<_EventDetailView> {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (event.imageUrl != null && event.imageUrl!.isNotEmpty) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        event.imageUrl!,
+                        height: 220,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          height: 90,
+                          alignment: Alignment.center,
+                          color: Colors.grey.shade200,
+                          child: const Text('No se pudo cargar la imagen'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Text(
                     event.title,
                     style: const TextStyle(

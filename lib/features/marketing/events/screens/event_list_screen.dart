@@ -94,6 +94,18 @@ class _EventListScreenState extends State<EventListScreen> {
   Widget _eventTile(EventModel event) {
     return Card(
       child: ListTile(
+        leading: event.imageUrl != null && event.imageUrl!.isNotEmpty
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  event.imageUrl!,
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported),
+                ),
+              )
+            : const Icon(Icons.event),
         title: Text(event.title),
         subtitle: Text('${_formatDate(event.eventDate)} - ${event.location}'),
         onTap: () => _openEventDetail(event.id),

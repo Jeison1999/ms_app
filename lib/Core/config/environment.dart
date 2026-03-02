@@ -3,6 +3,8 @@ class Environment {
   static const String baseUrl = 'https://ape-hardy-monkey.ngrok-free.app';
   static const String apiVersion = 'v1';
   static const String apiBasePath = '/api/$apiVersion';
+  static const String cloudinaryCloudName = 'dsm6diilz';
+  static const String cloudinaryUploadPreset = 'ml_default';
 
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);

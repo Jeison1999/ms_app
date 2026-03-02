@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:ms_app/features/auth/bloc/auth_bloc.dart';
 import 'package:ms_app/features/auth/bloc/auth_event.dart';
+import 'package:ms_app/core/services/cloudinary_service.dart';
 import '../event_bloc.dart';
 import '../event_repository.dart';
 import '../models/event_model.dart';
@@ -45,11 +47,14 @@ class _EventFormView extends StatefulWidget {
 
 class _EventFormViewState extends State<_EventFormView> {
   final _formKey = GlobalKey<FormState>();
+  final ImagePicker _imagePicker = ImagePicker();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _locationController;
   late final TextEditingController _imageUrlController;
   late DateTime _eventDate;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -131,6 +136,36 @@ class _EventFormViewState extends State<_EventFormView> {
     }
   }
 
+  Future<void> _pickAndUploadImage() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _isUploadingImage = true);
+    try {
+      final url = await _cloudinaryService.uploadImage(
+        filePath: picked.path,
+        fileName: picked.name,
+      );
+      _imageUrlController.text = url;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagen subida correctamente')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al subir imagen: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<EventBloc, EventState>(
@@ -147,7 +182,8 @@ class _EventFormViewState extends State<_EventFormView> {
         }
       },
       builder: (context, state) {
-        final isLoading = state is EventLoading;
+        final isLoading = state is EventLoading || _isUploadingImage;
+        final imageUrl = _imageUrlController.text.trim();
         return Scaffold(
           appBar: AppBar(
             title: Text(widget.isEdit ? 'Editar evento' : 'Nuevo evento'),
@@ -211,11 +247,46 @@ class _EventFormViewState extends State<_EventFormView> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _imageUrlController,
+                  onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
                     labelText: 'URL de imagen (opcional)',
                     border: OutlineInputBorder(),
                   ),
                 ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: isLoading ? null : _pickAndUploadImage,
+                  icon: _isUploadingImage
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.cloud_upload),
+                  label: Text(
+                    _isUploadingImage
+                        ? 'Subiendo imagen...'
+                        : 'Subir imagen a Cloudinary',
+                  ),
+                ),
+                if (imageUrl.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      imageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        height: 80,
+                        alignment: Alignment.center,
+                        color: Colors.grey.shade200,
+                        child: const Text('No se pudo cargar la imagen'),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 InkWell(
                   onTap: isLoading ? null : _pickDateTime,
