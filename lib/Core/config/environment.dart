@@ -1,6 +1,6 @@
 //configuración de la aplicación, como URLs base, rutas de API, y tiempos de espera para las solicitudes HTTP.
 class Environment {
-  static const String baseUrl = 'https://ape-hardy-monkey.ngrok-free.app';
+  static const String baseUrl = 'https://ms-backend-r8lr.onrender.com/';
   static const String apiVersion = 'v1';
   static const String apiBasePath = '/api/$apiVersion';
   static const String cloudinaryCloudName = 'dsm6diilz';
