@@ -4,6 +4,8 @@ import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
 import '../event_bloc.dart';
 import '../event_repository.dart';
 import '../models/event_model.dart';
+import '../widgets/create_event_fab.dart';
+import '../widgets/event_card.dart';
 import 'event_detail_screen.dart';
 import 'event_form_screen.dart';
 
@@ -31,10 +33,8 @@ class _EventListScreenState extends State<EventListScreen> {
   Future<void> _openEditEvent(EventModel event) async {
     final updated = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EventFormScreen(
-          repository: _repository,
-          initialEvent: event,
-        ),
+        builder: (_) =>
+            EventFormScreen(repository: _repository, initialEvent: event),
       ),
     );
     if (updated == true && mounted) {
@@ -45,10 +45,8 @@ class _EventListScreenState extends State<EventListScreen> {
   Future<void> _openEventDetail(int eventId) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EventDetailScreen(
-          repository: _repository,
-          eventId: eventId,
-        ),
+        builder: (_) =>
+            EventDetailScreen(repository: _repository, eventId: eventId),
       ),
     );
     if (changed == true && mounted) {
@@ -91,48 +89,51 @@ class _EventListScreenState extends State<EventListScreen> {
   }
 
   Widget _eventTile(EventModel event) {
-    return Card(
-      child: ListTile(
-        leading: event.imageUrl != null && event.imageUrl!.isNotEmpty
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  event.imageUrl!,
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported),
+    return EventCard(
+      event: event,
+      formattedDate: _formatDate(event.eventDate),
+      onTap: () => _openEventDetail(event.id),
+      onView: () => _openEventDetail(event.id),
+      onEdit: () => _openEditEvent(event),
+      onDelete: () => _deleteEvent(event),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required IconData icon,
+    required List<EventModel> events,
+    required String emptyText,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                 ),
-              )
-            : const Icon(Icons.event),
-        title: Text(event.title),
-        subtitle: Text('${_formatDate(event.eventDate)} - ${event.location}'),
-        onTap: () => _openEventDetail(event.id),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'view') {
-              _openEventDetail(event.id);
-            } else if (value == 'edit') {
-              _openEditEvent(event);
-            } else if (value == 'delete') {
-              _deleteEvent(event);
-            }
-          },
-          itemBuilder: (context) => const [
-            PopupMenuItem<String>(
-              value: 'view',
-              child: Text('Ver detalle'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (events.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Text(
+                emptyText,
+                style: const TextStyle(color: Colors.black54),
+              ),
             ),
-            PopupMenuItem<String>(
-              value: 'edit',
-              child: Text('Editar'),
-            ),
-            PopupMenuItem<String>(
-              value: 'delete',
-              child: Text('Eliminar'),
-            ),
-          ],
-        ),
+          ...events.map(_eventTile),
+        ],
       ),
     );
   }
@@ -140,33 +141,19 @@ class _EventListScreenState extends State<EventListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: DefaultSectionAppBar(
-        titleText: 'Eventos',
-        customActions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<EventBloc>().add(LoadAllEvents());
-            },
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCreateEvent,
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo evento'),
-      ),
+      appBar: const DefaultSectionAppBar(titleText: 'Eventos'),
+      floatingActionButton: CreateEventFab(onPressed: _openCreateEvent),
       body: BlocConsumer<EventBloc, EventState>(
         listener: (context, state) {
           if (state is EventSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
             context.read<EventBloc>().add(LoadAllEvents());
           } else if (state is EventError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         builder: (context, state) {
@@ -181,32 +168,38 @@ class _EventListScreenState extends State<EventListScreen> {
                 context.read<EventBloc>().add(LoadAllEvents());
               },
               child: ListView(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 80),
                 children: [
-                  const Text(
-                    'Próximos',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  if (state.upcoming.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 16),
-                      child: Text('No hay eventos próximos.'),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(
+                            alpha: 0.11,
+                          ),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                  ...state.upcoming.map(_eventTile),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Pasados',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  if (state.past.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 16),
-                      child: Text('No hay eventos pasados.'),
+                    child: Text(
+                      'Total: ${state.upcoming.length + state.past.length} eventos',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
-                  ...state.past.map(_eventTile),
-                  const SizedBox(height: 80),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildSection(
+                    title: 'Próximos',
+                    icon: Icons.event_available_rounded,
+                    events: state.upcoming,
+                    emptyText: 'No hay eventos próximos.',
+                  ),
+                  _buildSection(
+                    title: 'Recientes',
+                    icon: Icons.history_rounded,
+                    events: state.past,
+                    emptyText: 'No hay eventos recientes.',
+                  ),
                 ],
               ),
             );

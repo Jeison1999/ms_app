@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/api/api_client.dart';
 import '../features/auth/models/user_model.dart';
-import '../features/marketing/marketing_home/screen.dart';
+import '../features/marketing/marketing_home/screens/marketing_home_screen.dart';
 import '../features/consolidator/screens/consolidator_home_screen.dart';
 import '../features/sales/screens/sales_home_screen.dart';
 import '../features/accounting/screens/accounting_home_screen.dart';

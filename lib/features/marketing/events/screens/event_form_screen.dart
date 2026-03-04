@@ -6,6 +6,7 @@ import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
 import '../event_bloc.dart';
 import '../event_repository.dart';
 import '../models/event_model.dart';
+import '../widgets/event_form_widgets.dart';
 
 class EventFormScreen extends StatelessWidget {
   final EventRepository repository;
@@ -23,10 +24,7 @@ class EventFormScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => EventBloc(repository),
-      child: _EventFormView(
-        initialEvent: initialEvent,
-        isEdit: _isEdit,
-      ),
+      child: _EventFormView(initialEvent: initialEvent, isEdit: _isEdit),
     );
   }
 }
@@ -35,10 +33,7 @@ class _EventFormView extends StatefulWidget {
   final EventModel? initialEvent;
   final bool isEdit;
 
-  const _EventFormView({
-    required this.initialEvent,
-    required this.isEdit,
-  });
+  const _EventFormView({required this.initialEvent, required this.isEdit});
 
   @override
   State<_EventFormView> createState() => _EventFormViewState();
@@ -58,7 +53,9 @@ class _EventFormViewState extends State<_EventFormView> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.initialEvent?.title ?? '');
+    _titleController = TextEditingController(
+      text: widget.initialEvent?.title ?? '',
+    );
     _descriptionController = TextEditingController(
       text: widget.initialEvent?.description ?? '',
     );
@@ -155,9 +152,9 @@ class _EventFormViewState extends State<_EventFormView> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al subir imagen: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
     } finally {
       if (mounted) {
         setState(() => _isUploadingImage = false);
@@ -170,14 +167,14 @@ class _EventFormViewState extends State<_EventFormView> {
     return BlocConsumer<EventBloc, EventState>(
       listener: (context, state) {
         if (state is EventSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
           Navigator.of(context).pop(true);
         } else if (state is EventError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
         }
       },
       builder: (context, state) {
@@ -187,121 +184,111 @@ class _EventFormViewState extends State<_EventFormView> {
           appBar: DefaultSectionAppBar(
             titleText: widget.isEdit ? 'Editar evento' : 'Nuevo evento',
           ),
-          body: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                TextFormField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Título',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'El título es obligatorio';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _descriptionController,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'Descripción',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'La descripción es obligatoria';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Ubicación',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'La ubicación es obligatoria';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _imageUrlController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'URL de imagen (opcional)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: isLoading ? null : _pickAndUploadImage,
-                  icon: _isUploadingImage
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.cloud_upload),
-                  label: Text(
-                    _isUploadingImage
-                        ? 'Subiendo imagen...'
-                        : 'Subir imagen a Cloudinary',
-                  ),
-                ),
-                if (imageUrl.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      imageUrl,
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        height: 80,
-                        alignment: Alignment.center,
-                        color: Colors.grey.shade200,
-                        child: const Text('No se pudo cargar la imagen'),
-                      ),
-                    ),
-                  ),
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+                  Theme.of(context).colorScheme.surface,
                 ],
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: isLoading ? null : _pickDateTime,
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Fecha y hora',
-                      border: OutlineInputBorder(),
+              ),
+            ),
+            child: SafeArea(
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    EventFormHeader(isEdit: widget.isEdit),
+                    const SizedBox(height: 14),
+                    EventFormSection(
+                      title: 'Informacion principal',
+                      icon: Icons.edit_note_rounded,
+                      children: [
+                        EventInputField(
+                          controller: _titleController,
+                          label: 'Titulo',
+                          icon: Icons.title_rounded,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'El titulo es obligatorio';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        EventInputField(
+                          controller: _descriptionController,
+                          label: 'Descripcion',
+                          icon: Icons.description_rounded,
+                          minLines: 3,
+                          maxLines: 5,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'La descripcion es obligatoria';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        EventInputField(
+                          controller: _locationController,
+                          label: 'Ubicacion',
+                          icon: Icons.place_rounded,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'La ubicacion es obligatoria';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                     ),
-                    child: Text(_formatDate(_eventDate)),
-                  ),
+                    const SizedBox(height: 14),
+                    EventFormSection(
+                      title: 'Imagen',
+                      icon: Icons.image_rounded,
+                      children: [
+                        EventInputField(
+                          controller: _imageUrlController,
+                          label: 'URL de imagen (opcional)',
+                          icon: Icons.link_rounded,
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        const SizedBox(height: 8),
+                        EventUploadImageButton(
+                          isUploading: _isUploadingImage,
+                          isDisabled: isLoading,
+                          onPressed: _pickAndUploadImage,
+                        ),
+                        if (imageUrl.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          EventImagePreview(imageUrl: imageUrl),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    EventFormSection(
+                      title: 'Agenda',
+                      icon: Icons.event_rounded,
+                      children: [
+                        EventDateTimeField(
+                          value: _formatDate(_eventDate),
+                          onTap: isLoading ? null : _pickDateTime,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    EventSubmitButton(
+                      isEdit: widget.isEdit,
+                      isLoading: isLoading,
+                      onPressed: _submit,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  onPressed: isLoading ? null : _submit,
-                  icon: isLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(widget.isEdit ? 'Actualizar' : 'Crear'),
-                ),
-              ],
+              ),
             ),
           ),
         );

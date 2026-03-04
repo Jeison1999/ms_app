@@ -13,8 +13,15 @@ class ApiEndpoints {
 
   // Marketing endpoints
   static const String marketingBase = '$_base/marketing';
-  static const String events = '$marketingBase/events';
   static const String announcements = '$marketingBase/announcements';
+
+  // Content endpoints(Submodulo de marketing)
+  static const String contentBase = '$_base/content';
+  static const String events = '$contentBase/events';
+  static const String upcomingEvents = '$events/upcoming';
+  static const String recentPastEvents = '$events/recent_past';
+
+  static String eventById(int id) => '$events/$id';
 
   // Users endpoints
   static const String usersBase = '$_base/users';

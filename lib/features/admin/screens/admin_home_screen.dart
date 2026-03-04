@@ -5,7 +5,7 @@ import '../../../Core/theme/app_text_styles.dart';
 import '../../../Core/widgets/app_section_app_bar.dart';
 import '../../accounting/screens/accounting_home_screen.dart';
 import '../../consolidator/screens/consolidator_home_screen.dart';
-import '../../marketing/marketing_home/screen.dart';
+import '../../marketing/marketing_home/screens/marketing_home_screen.dart';
 import '../../sales/screens/sales_home_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
