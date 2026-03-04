@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/api/api_client.dart';
 import 'core/utils/storage_service.dart';
@@ -33,14 +32,16 @@ class MsApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           useMaterial3: true,
-          textTheme: GoogleFonts.poppinsTextTheme(),
         ),
         home: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
-            if (state is AuthInitial || state is AuthLoading) {
+            if (state is AuthInitial || state is AuthChecking) {
               return const SplashScreen();
             } else if (state is AuthAuthenticated) {
-              return RoleBasedRouter.getHomeScreen(state.user, apiClient: apiClient);
+              return RoleBasedRouter.getHomeScreen(
+                state.user,
+                apiClient: apiClient,
+              );
             } else {
               return const LoginScreen();
             }

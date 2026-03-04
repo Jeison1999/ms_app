@@ -19,7 +19,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthCheckRequested event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading());
+    emit(AuthChecking());
 
     try {
       final hasToken = await authRepository.hasValidToken();
@@ -50,7 +50,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
-
       emit(AuthAuthenticated(user: authResponse.user));
     } on ApiException catch (e) {
       emit(AuthError(message: e.message));
