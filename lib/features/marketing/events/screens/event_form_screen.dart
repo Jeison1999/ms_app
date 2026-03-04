@@ -132,6 +132,12 @@ class _EventFormViewState extends State<_EventFormView> {
     }
   }
 
+  void _clearImage() {
+    setState(() {
+      _imageUrlController.clear();
+    });
+  }
+
   Future<void> _pickAndUploadImage() async {
     final picked = await _imagePicker.pickImage(
       source: ImageSource.gallery,
@@ -184,6 +190,17 @@ class _EventFormViewState extends State<_EventFormView> {
           appBar: DefaultSectionAppBar(
             titleText: widget.isEdit ? 'Editar evento' : 'Nuevo evento',
           ),
+          bottomNavigationBar: EventActionBar(
+            secondary: EventCancelButton(
+              isLoading: isLoading,
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+            primary: EventSubmitButton(
+              isEdit: widget.isEdit,
+              isLoading: isLoading,
+              onPressed: _submit,
+            ),
+          ),
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -206,11 +223,14 @@ class _EventFormViewState extends State<_EventFormView> {
                     EventFormSection(
                       title: 'Informacion principal',
                       icon: Icons.edit_note_rounded,
+                      subtitle:
+                          'Datos basicos para identificar y describir el evento.',
                       children: [
                         EventInputField(
                           controller: _titleController,
                           label: 'Titulo',
                           icon: Icons.title_rounded,
+                          hint: 'Ej. Feria de tecnologia 2026',
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'El titulo es obligatorio';
@@ -223,6 +243,7 @@ class _EventFormViewState extends State<_EventFormView> {
                           controller: _descriptionController,
                           label: 'Descripcion',
                           icon: Icons.description_rounded,
+                          hint: 'Resumen corto de que trata el evento',
                           minLines: 3,
                           maxLines: 5,
                           validator: (value) {
@@ -237,6 +258,7 @@ class _EventFormViewState extends State<_EventFormView> {
                           controller: _locationController,
                           label: 'Ubicacion',
                           icon: Icons.place_rounded,
+                          hint: 'Ej. Centro de convenciones',
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'La ubicacion es obligatoria';
@@ -250,22 +272,28 @@ class _EventFormViewState extends State<_EventFormView> {
                     EventFormSection(
                       title: 'Imagen',
                       icon: Icons.image_rounded,
+                      subtitle: 'Puedes pegar una URL o subirla desde galeria.',
                       children: [
                         EventInputField(
                           controller: _imageUrlController,
                           label: 'URL de imagen (opcional)',
                           icon: Icons.link_rounded,
+                          hint: 'https://...',
                           onChanged: (_) => setState(() {}),
                         ),
-                        const SizedBox(height: 8),
-                        EventUploadImageButton(
+                        const SizedBox(height: 10),
+                        EventImageTools(
+                          hasImage: imageUrl.isNotEmpty,
                           isUploading: _isUploadingImage,
                           isDisabled: isLoading,
-                          onPressed: _pickAndUploadImage,
+                          onUpload: _pickAndUploadImage,
+                          onClear: _clearImage,
                         ),
+                        const SizedBox(height: 10),
                         if (imageUrl.isNotEmpty) ...[
-                          const SizedBox(height: 10),
                           EventImagePreview(imageUrl: imageUrl),
+                        ] else ...[
+                          const EventImagePlaceholder(),
                         ],
                       ],
                     ),
@@ -273,6 +301,7 @@ class _EventFormViewState extends State<_EventFormView> {
                     EventFormSection(
                       title: 'Agenda',
                       icon: Icons.event_rounded,
+                      subtitle: 'Selecciona fecha y hora exacta del evento.',
                       children: [
                         EventDateTimeField(
                           value: _formatDate(_eventDate),
@@ -280,12 +309,7 @@ class _EventFormViewState extends State<_EventFormView> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    EventSubmitButton(
-                      isEdit: widget.isEdit,
-                      isLoading: isLoading,
-                      onPressed: _submit,
-                    ),
+                    const SizedBox(height: 110),
                   ],
                 ),
               ),

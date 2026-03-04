@@ -4,6 +4,7 @@ import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
 import '../event_bloc.dart';
 import '../event_repository.dart';
 import '../models/event_model.dart';
+import '../widgets/event_action_fab_menu.dart';
 import 'event_form_screen.dart';
 
 class EventDetailScreen extends StatelessWidget {
@@ -29,10 +30,7 @@ class _EventDetailView extends StatefulWidget {
   final int eventId;
   final EventRepository repository;
 
-  const _EventDetailView({
-    required this.eventId,
-    required this.repository,
-  });
+  const _EventDetailView({required this.eventId, required this.repository});
 
   @override
   State<_EventDetailView> createState() => _EventDetailViewState();
@@ -51,16 +49,30 @@ class _EventDetailViewState extends State<_EventDetailView> {
     return '$d/$m/$y $h:$min';
   }
 
+  int? _calendarDaysUntil(EventModel event) {
+    if (!event.isUpcoming) return null;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final localEvent = event.eventDate.toLocal();
+    final eventDay = DateTime(
+      localEvent.year,
+      localEvent.month,
+      localEvent.day,
+    );
+    final days = eventDay.difference(today).inDays;
+
+    return days < 0 ? 0 : days;
+  }
+
   Future<void> _openEdit() async {
     final event = _event;
     if (event == null) return;
 
     final updated = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EventFormScreen(
-          repository: widget.repository,
-          initialEvent: event,
-        ),
+        builder: (_) =>
+            EventFormScreen(repository: widget.repository, initialEvent: event),
       ),
     );
 
@@ -105,33 +117,25 @@ class _EventDetailViewState extends State<_EventDetailView> {
         if (state is EventDetailLoaded) {
           _event = state.event;
         } else if (state is EventSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
           Navigator.of(context).pop(true);
         } else if (state is EventError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
         }
       },
       builder: (context, state) {
         final loading = state is EventLoading;
         return Scaffold(
-          appBar: DefaultSectionAppBar(
-            titleText: 'Detalle del evento',
-            customActions: [
-              IconButton(
-                onPressed: loading ? null : _openEdit,
-                icon: const Icon(Icons.edit),
-                tooltip: 'Editar',
-              ),
-              IconButton(
-                onPressed: loading ? null : _delete,
-                icon: const Icon(Icons.delete),
-                tooltip: 'Eliminar',
-              ),
-            ],
+          appBar: const DefaultSectionAppBar(titleText: 'Detalle del evento'),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+          floatingActionButton: EventActionFabMenu(
+            isDisabled: loading || _event == null,
+            onEdit: _openEdit,
+            onDelete: _delete,
           ),
           body: Builder(
             builder: (_) {
@@ -144,8 +148,11 @@ class _EventDetailViewState extends State<_EventDetailView> {
 
               final event = _event;
               if (event == null) {
-                return const Center(child: Text('No se pudo cargar el evento.'));
+                return const Center(
+                  child: Text('No se pudo cargar el evento.'),
+                );
               }
+              final calendarDaysUntil = _calendarDaysUntil(event);
 
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
@@ -186,12 +193,12 @@ class _EventDetailViewState extends State<_EventDetailView> {
                           label: 'Estado',
                           value: event.isUpcoming ? 'Próximo' : 'Pasado',
                         ),
-                        if (event.daysUntil != null) ...[
+                        if (calendarDaysUntil != null) ...[
                           const SizedBox(height: 12),
                           _InfoRow(
                             icon: Icons.timer_outlined,
                             label: 'Faltan',
-                            value: '${event.daysUntil} días',
+                            value: '$calendarDaysUntil dias',
                           ),
                         ],
                       ],
@@ -250,10 +257,7 @@ class _EventHeader extends StatelessWidget {
                         accentColor: accentColor,
                       ),
                     )
-                  : _ImageFallback(
-                      title: title,
-                      accentColor: accentColor,
-                    ),
+                  : _ImageFallback(title: title, accentColor: accentColor),
             ),
             Positioned.fill(
               child: DecoratedBox(
@@ -273,7 +277,10 @@ class _EventHeader extends StatelessWidget {
               right: 12,
               top: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(999),
@@ -318,9 +325,7 @@ class _ImageFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.18),
-      ),
+      decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.18)),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -359,7 +364,9 @@ class _InfoCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.35),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
       ),
       child: Column(
