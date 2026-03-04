@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ms_app/features/auth/bloc/auth_bloc.dart';
-import 'package:ms_app/features/auth/bloc/auth_event.dart';
+import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
 import '../event_bloc.dart';
 import '../event_repository.dart';
 import '../models/event_model.dart';
@@ -141,15 +140,9 @@ class _EventListScreenState extends State<EventListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Eventos'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              context.read<AuthBloc>().add(AuthLogoutRequested());
-            },
-          ),
+      appBar: DefaultSectionAppBar(
+        titleText: 'Eventos',
+        customActions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {

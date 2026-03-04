@@ -145,31 +145,8 @@ class LoginFormContent extends StatelessWidget {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 8),
-                  // Recordarme y olvidé contraseña
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: rememberMe,
-                        activeColor: primaryColor,
-                        onChanged: (value) =>
-                            onRememberMeChanged(value ?? false),
-                      ),
-                      const Text(
-                        'Recordarme',
-                        style: TextStyle(fontSize: 13, color: Colors.black87),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          '¿Olvidaste tu contraseña?',
-                          style: TextStyle(fontSize: 13, color: Colors.black54),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+
+                  const SizedBox(height: 30),
                   if (errorMessage != null) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -217,10 +194,10 @@ class LoginFormContent extends StatelessWidget {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ).copyWith(
-                            backgroundColor: MaterialStateProperty.all<Color>(
+                            backgroundColor: WidgetStateProperty.all<Color>(
                               Colors.transparent,
                             ),
-                            elevation: MaterialStateProperty.all<double>(0),
+                            elevation: WidgetStateProperty.all<double>(0),
                           ),
                       child: Ink(
                         decoration: BoxDecoration(
@@ -229,8 +206,8 @@ class LoginFormContent extends StatelessWidget {
                             end: Alignment.centerRight,
                             colors: isLoading
                                 ? [
-                                    primaryColor.withOpacity(0.7),
-                                    const Color(0xFFEAC389).withOpacity(0.7),
+                                    primaryColor.withValues(alpha: 0.7),
+                                    const Color(0xFFEAC389).withValues(alpha: 0.7),
                                   ]
                                 : [primaryColor, const Color(0xFFEAC389)],
                           ),

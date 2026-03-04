@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ms_app/features/auth/bloc/auth_bloc.dart';
-import 'package:ms_app/features/auth/bloc/auth_event.dart';
+import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
 import '../event_bloc.dart';
 import '../event_repository.dart';
 import '../models/event_model.dart';
@@ -117,16 +116,9 @@ class _EventDetailViewState extends State<_EventDetailView> {
       builder: (context, state) {
         final loading = state is EventLoading;
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Detalle del evento'),
-            actions: [
-              IconButton(
-                onPressed: () {
-                  context.read<AuthBloc>().add(AuthLogoutRequested());
-                },
-                icon: const Icon(Icons.logout),
-                tooltip: 'Cerrar sesión',
-              ),
+          appBar: DefaultSectionAppBar(
+            titleText: 'Detalle del evento',
+            customActions: [
               IconButton(
                 onPressed: loading ? null : _openEdit,
                 icon: const Icon(Icons.edit),

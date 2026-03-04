@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../auth/bloc/auth_bloc.dart';
-import '../../auth/bloc/auth_event.dart';
+import '../../../Core/widgets/app_section_app_bar.dart';
 
 class AccountingHomeScreen extends StatelessWidget {
   const AccountingHomeScreen({super.key});
@@ -9,16 +7,8 @@ class AccountingHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Contabilidad'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              context.read<AuthBloc>().add(AuthLogoutRequested());
-            },
-          ),
-        ],
+      appBar: const DefaultSectionAppBar(
+        titleText: 'Contabilidad',
       ),
       body: const Center(
         child: Column(

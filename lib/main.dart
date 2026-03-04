@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/api/api_client.dart';
 import 'core/utils/storage_service.dart';
+import 'Core/theme/app_theme.dart';
 import 'features/auth/repository/auth_repository.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/bloc/auth_state.dart';
@@ -29,10 +30,7 @@ class MsApp extends StatelessWidget {
       create: (context) => AuthBloc(authRepository: authRepository),
       child: MaterialApp(
         title: 'MS App',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.lightTheme,
         home: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
             if (state is AuthInitial || state is AuthChecking) {

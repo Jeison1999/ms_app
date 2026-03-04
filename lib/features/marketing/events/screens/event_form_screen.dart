@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:ms_app/features/auth/bloc/auth_bloc.dart';
-import 'package:ms_app/features/auth/bloc/auth_event.dart';
 import 'package:ms_app/core/services/cloudinary_service.dart';
+import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
 import '../event_bloc.dart';
 import '../event_repository.dart';
 import '../models/event_model.dart';
@@ -185,16 +184,8 @@ class _EventFormViewState extends State<_EventFormView> {
         final isLoading = state is EventLoading || _isUploadingImage;
         final imageUrl = _imageUrlController.text.trim();
         return Scaffold(
-          appBar: AppBar(
-            title: Text(widget.isEdit ? 'Editar evento' : 'Nuevo evento'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () {
-                  context.read<AuthBloc>().add(AuthLogoutRequested());
-                },
-              ),
-            ],
+          appBar: DefaultSectionAppBar(
+            titleText: widget.isEdit ? 'Editar evento' : 'Nuevo evento',
           ),
           body: Form(
             key: _formKey,

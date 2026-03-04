@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../auth/bloc/auth_bloc.dart';
-import '../../auth/bloc/auth_event.dart';
+import '../../../Core/widgets/app_section_app_bar.dart';
 
 class ConsolidatorHomeScreen extends StatelessWidget {
   const ConsolidatorHomeScreen({super.key});
@@ -9,16 +7,8 @@ class ConsolidatorHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Consolidador'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              context.read<AuthBloc>().add(AuthLogoutRequested());
-            },
-          ),
-        ],
+      appBar: const DefaultSectionAppBar(
+        titleText: 'Consolidador',
       ),
       body: const Center(
         child: Column(
