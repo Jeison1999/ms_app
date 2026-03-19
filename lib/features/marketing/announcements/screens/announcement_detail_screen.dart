@@ -48,10 +48,11 @@ class _AnnouncementDetailViewState extends State<_AnnouncementDetailView> {
   AnnouncementModel? _announcement;
 
   String _formatDate(DateTime date) {
-    final local = date.toLocal();
-    final d = local.day.toString().padLeft(2, '0');
-    final m = local.month.toString().padLeft(2, '0');
-    final y = local.year.toString();
+    // Convertir a Colombia (UTC-5)
+    final colombia = date.subtract(const Duration(hours: 5));
+    final d = colombia.day.toString().padLeft(2, '0');
+    final m = colombia.month.toString().padLeft(2, '0');
+    final y = colombia.year.toString();
     return '$d/$m/$y';
   }
 
@@ -199,49 +200,26 @@ class _AnnouncementDetailViewState extends State<_AnnouncementDetailView> {
                   ),
                   const SizedBox(height: 8),
                   // Status badge
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: announcement.isActive
-                              ? colorScheme.primary.withValues(alpha: 0.12)
-                              : Colors.grey.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          announcement.isActive ? 'Activo' : 'Inactivo',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: announcement.isActive
-                                ? colorScheme.primary
-                                : Colors.black54,
-                          ),
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: announcement.isPublished
+                          ? colorScheme.primary.withValues(alpha: 0.12)
+                          : Colors.grey.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      announcement.isPublished ? 'Publicado' : 'No Publicado',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: announcement.isPublished
+                            ? colorScheme.primary
+                            : Colors.black54,
                       ),
-                      const SizedBox(width: 8),
-                      if (announcement.isPublished)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'Publicado',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // Description

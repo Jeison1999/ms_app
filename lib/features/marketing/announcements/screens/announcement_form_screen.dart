@@ -54,7 +54,6 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
   late final TextEditingController _mediaUrlController;
   late String _mediaType;
   late String _aspectRatio;
-  late bool _isActive;
   late DateTime? _publishedAt;
   bool _isUploadingImage = false;
 
@@ -75,7 +74,6 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
     );
     _mediaType = widget.initialAnnouncement?.mediaType ?? 'image';
     _aspectRatio = widget.initialAnnouncement?.aspectRatio ?? '16:9';
-    _isActive = widget.initialAnnouncement?.isActive ?? false;
     _publishedAt = widget.initialAnnouncement?.publishedAt;
   }
 
@@ -98,10 +96,12 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
           : _mediaUrlController.text.trim(),
       'media_type': _mediaType,
       'aspect_ratio': _aspectRatio,
-      'is_active': _isActive,
-      if (_publishedAt != null)
-        'published_at': _publishedAt!.toUtc().toIso8601String(),
     };
+
+    // Solo incluir published_at si tiene valor (mantener fecha existente en edición)
+    if (_publishedAt != null) {
+      data['published_at'] = _publishedAt!.toUtc().toIso8601String();
+    }
 
     if (widget.isEdit) {
       context.read<AnnouncementBloc>().add(
@@ -274,13 +274,6 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
                         _buildAspectRatioDropdown(),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    AnnouncementFormSection(
-                      title: 'Estado',
-                      icon: Icons.toggle_on_rounded,
-                      subtitle: 'Controla si el anuncio está activo.',
-                      children: [_buildActiveToggle()],
-                    ),
                     const SizedBox(height: 110),
                   ],
                 ),
@@ -352,35 +345,6 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
           setState(() => _aspectRatio = value);
         }
       },
-    );
-  }
-
-  Widget _buildActiveToggle() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Activar anuncio',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            Text(
-              'Haz visible este anuncio',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-            ),
-          ],
-        ),
-        Switch(
-          value: _isActive,
-          onChanged: (value) {
-            setState(() => _isActive = value);
-          },
-        ),
-      ],
     );
   }
 }

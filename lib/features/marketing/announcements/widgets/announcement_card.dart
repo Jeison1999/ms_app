@@ -84,17 +84,17 @@ class AnnouncementCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: announcement.isActive
+                        color: announcement.isPublished
                             ? colorScheme.primary.withValues(alpha: 0.12)
                             : Colors.grey.withValues(alpha: 0.16),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        announcement.isActive ? 'Activo' : 'Inactivo',
+                        announcement.isPublished ? 'Publicado' : 'No Publicado',
                         style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
-                          color: announcement.isActive
+                          color: announcement.isPublished
                               ? colorScheme.primary
                               : Colors.black54,
                         ),
@@ -181,10 +181,11 @@ class AnnouncementCard extends StatelessWidget {
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'No publicado';
-    final local = date.toLocal();
-    final d = local.day.toString().padLeft(2, '0');
-    final m = local.month.toString().padLeft(2, '0');
-    final y = local.year.toString();
+    // Convertir a Colombia (UTC-5)
+    final colombia = date.subtract(const Duration(hours: 5));
+    final d = colombia.day.toString().padLeft(2, '0');
+    final m = colombia.month.toString().padLeft(2, '0');
+    final y = colombia.year.toString();
     return '$d/$m/$y';
   }
 }

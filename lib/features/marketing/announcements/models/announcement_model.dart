@@ -5,7 +5,6 @@ class AnnouncementModel {
   final String mediaUrl;
   final String mediaType;
   final String aspectRatio;
-  final bool isActive;
   final bool isPublished;
   final DateTime? publishedAt;
   final DateTime createdAt;
@@ -18,7 +17,6 @@ class AnnouncementModel {
     required this.mediaUrl,
     required this.mediaType,
     required this.aspectRatio,
-    required this.isActive,
     required this.isPublished,
     this.publishedAt,
     required this.createdAt,
@@ -33,7 +31,6 @@ class AnnouncementModel {
       mediaUrl: json['media_url'] as String,
       mediaType: json['media_type'] as String,
       aspectRatio: json['aspect_ratio'] as String,
-      isActive: json['is_active'] as bool,
       isPublished: json['is_published'] as bool,
       publishedAt: json['published_at'] != null
           ? DateTime.parse(json['published_at'] as String)
@@ -50,7 +47,6 @@ class AnnouncementModel {
       'media_url': mediaUrl,
       'media_type': mediaType,
       'aspect_ratio': aspectRatio,
-      'is_active': isActive,
       'published_at': publishedAt?.toIso8601String(),
     };
   }
