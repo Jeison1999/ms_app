@@ -5,6 +5,9 @@ import 'package:ms_app/Core/theme/app_text_styles.dart';
 import 'package:ms_app/features/marketing/events/event_bloc.dart';
 import 'package:ms_app/features/marketing/events/event_repository.dart';
 import 'package:ms_app/features/marketing/events/screens/event_list_screen.dart';
+import 'package:ms_app/features/marketing/announcements/announcement_bloc.dart';
+import 'package:ms_app/features/marketing/announcements/announcement_repository.dart';
+import 'package:ms_app/features/marketing/announcements/screens/announcement_list_screen.dart';
 import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
 
 import '../../../../core/api/api_client.dart';
@@ -18,9 +21,7 @@ class MarketingHomeScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: const DefaultSectionAppBar(
-        titleText: 'Marketing',
-      ),
+      appBar: const DefaultSectionAppBar(titleText: 'Marketing'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
@@ -45,10 +46,7 @@ class MarketingHomeScreen extends StatelessWidget {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: AppColors.primary,
-                    child: Icon(
-                      Icons.campaign_rounded,
-                      color: Colors.white,
-                    ),
+                    child: Icon(Icons.campaign_rounded, color: Colors.white),
                   ),
                   SizedBox(width: 12),
                   Expanded(
@@ -66,10 +64,7 @@ class MarketingHomeScreen extends StatelessWidget {
                         SizedBox(height: 4),
                         Text(
                           'Gestiona contenido, eventos y comunicación.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
-                          ),
+                          style: TextStyle(fontSize: 13, color: Colors.black54),
                         ),
                       ],
                     ),
@@ -98,6 +93,25 @@ class MarketingHomeScreen extends StatelessWidget {
                           EventBloc(EventRepository(apiClient: apiClient))
                             ..add(LoadAllEvents()),
                       child: const EventListScreen(),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _ModuleCard(
+              title: 'Gestión de anuncios',
+              subtitle: 'Administra anuncios y comunicación',
+              icon: Icons.campaign_rounded,
+              accentColor: colorScheme.tertiary,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider(
+                      create: (_) => AnnouncementBloc(
+                        AnnouncementRepository(apiClient: apiClient),
+                      )..add(LoadAllAnnouncements()),
+                      child: const AnnouncementListScreen(),
                     ),
                   ),
                 );
@@ -138,9 +152,9 @@ class _ModuleCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(
-                    alpha: 0.35,
-                  ),
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.35),
             ),
           ),
           child: Row(
@@ -165,7 +179,11 @@ class _ModuleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 16, color: accentColor),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: accentColor,
+              ),
             ],
           ),
         ),

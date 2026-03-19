@@ -11,17 +11,20 @@ class ApiEndpoints {
   static const String me = '$authBase/me';
   static const String refresh = '$authBase/refresh';
 
-  // Marketing endpoints
-  static const String marketingBase = '$_base/marketing';
-  static const String announcements = '$marketingBase/announcements';
-
-  // Content endpoints(Submodulo de marketing)
+  // Content endpoints (Submodulo de marketing)
   static const String contentBase = '$_base/content';
+
+  // Events endpoints
   static const String events = '$contentBase/events';
   static const String upcomingEvents = '$events/upcoming';
   static const String recentPastEvents = '$events/recent_past';
 
+  // Announcements endpoints
+  static const String announcements = '$contentBase/announcements';
+  static const String activeAnnouncements = '$announcements/active';
+
   static String eventById(int id) => '$events/$id';
+  static String announcementById(int id) => '$announcements/$id';
 
   // Users endpoints
   static const String usersBase = '$_base/users';
