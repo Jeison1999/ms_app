@@ -189,12 +189,43 @@ class AnnouncementInputField extends StatelessWidget {
 
 class AnnouncementImagePreview extends StatelessWidget {
   final String mediaUrl;
+  final String mediaType;
 
-  const AnnouncementImagePreview({super.key, required this.mediaUrl});
+  const AnnouncementImagePreview({
+    super.key,
+    required this.mediaUrl,
+    required this.mediaType,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (mediaUrl.isEmpty) return const SizedBox.shrink();
+    if (mediaType == 'video') {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.videocam_rounded),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Video cargado. La vista previa de video no esta habilitada aqui.',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -289,7 +320,7 @@ class AnnouncementImagePlaceholder extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Agrega una URL o sube una imagen',
+            'Agrega una URL o sube una imagen/video',
             style: TextStyle(
               color: colorScheme.onSurface.withValues(alpha: 0.75),
               fontWeight: FontWeight.w700,
@@ -373,12 +404,14 @@ class AnnouncementUploadImageButton extends StatelessWidget {
   final bool isUploading;
   final bool isDisabled;
   final VoidCallback onPressed;
+  final String mediaType;
 
   const AnnouncementUploadImageButton({
     super.key,
     required this.isUploading,
     required this.isDisabled,
     required this.onPressed,
+    required this.mediaType,
   });
 
   @override
@@ -395,9 +428,19 @@ class AnnouncementUploadImageButton extends StatelessWidget {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.cloud_upload_rounded),
+          : Icon(
+              mediaType == 'video'
+                  ? Icons.video_call_rounded
+                  : Icons.cloud_upload_rounded,
+            ),
       label: Text(
-        isUploading ? 'Subiendo imagen...' : 'Subir imagen a Cloudinary',
+        isUploading
+            ? (mediaType == 'video'
+                  ? 'Subiendo video...'
+                  : 'Subiendo imagen...')
+            : (mediaType == 'video'
+                  ? 'Subir video a Cloudinary'
+                  : 'Subir imagen a Cloudinary'),
       ),
     );
   }
@@ -444,6 +487,7 @@ class AnnouncementImageTools extends StatelessWidget {
   final bool hasImage;
   final bool isUploading;
   final bool isDisabled;
+  final String mediaType;
   final VoidCallback onUpload;
   final VoidCallback onClear;
 
@@ -452,6 +496,7 @@ class AnnouncementImageTools extends StatelessWidget {
     required this.hasImage,
     required this.isUploading,
     required this.isDisabled,
+    required this.mediaType,
     required this.onUpload,
     required this.onClear,
   });
@@ -464,6 +509,7 @@ class AnnouncementImageTools extends StatelessWidget {
           child: AnnouncementUploadImageButton(
             isUploading: isUploading,
             isDisabled: isDisabled || isUploading,
+            mediaType: mediaType,
             onPressed: onUpload,
           ),
         ),

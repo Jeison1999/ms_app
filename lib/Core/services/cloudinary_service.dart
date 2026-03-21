@@ -6,9 +6,10 @@ class CloudinaryService {
 
   CloudinaryService({Dio? dio}) : _dio = dio ?? Dio();
 
-  Future<String> uploadImage({
+  Future<String> uploadMedia({
     required String filePath,
     String? fileName,
+    String resourceType = 'auto',
   }) async {
     if (Environment.cloudinaryCloudName.isEmpty ||
         Environment.cloudinaryUploadPreset.isEmpty) {
@@ -18,14 +19,11 @@ class CloudinaryService {
     }
 
     final endpoint =
-        'https://api.cloudinary.com/v1_1/${Environment.cloudinaryCloudName}/image/upload';
+        'https://api.cloudinary.com/v1_1/${Environment.cloudinaryCloudName}/$resourceType/upload';
 
     final formData = FormData.fromMap({
       'upload_preset': Environment.cloudinaryUploadPreset,
-      'file': await MultipartFile.fromFile(
-        filePath,
-        filename: fileName,
-      ),
+      'file': await MultipartFile.fromFile(filePath, filename: fileName),
     });
 
     final response = await _dio.post(endpoint, data: formData);
@@ -39,5 +37,21 @@ class CloudinaryService {
       throw Exception('Cloudinary no retornó secure_url');
     }
     return secureUrl;
+  }
+
+  Future<String> uploadImage({required String filePath, String? fileName}) {
+    return uploadMedia(
+      filePath: filePath,
+      fileName: fileName,
+      resourceType: 'auto',
+    );
+  }
+
+  Future<String> uploadVideo({required String filePath, String? fileName}) {
+    return uploadMedia(
+      filePath: filePath,
+      fileName: fileName,
+      resourceType: 'video',
+    );
   }
 }

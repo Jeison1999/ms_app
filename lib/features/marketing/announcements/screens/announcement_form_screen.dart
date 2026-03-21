@@ -46,6 +46,8 @@ class _AnnouncementFormView extends StatefulWidget {
 }
 
 class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
+  static const Duration _publishSkewBuffer = Duration(minutes: 2);
+
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _imagePicker = ImagePicker();
   final CloudinaryService _cloudinaryService = CloudinaryService();
@@ -54,6 +56,7 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
   late final TextEditingController _mediaUrlController;
   late String _mediaType;
   late String _aspectRatio;
+  late bool _publishNow;
   late DateTime? _publishedAt;
   bool _isUploadingImage = false;
 
@@ -75,6 +78,13 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
     _mediaType = widget.initialAnnouncement?.mediaType ?? 'image';
     _aspectRatio = widget.initialAnnouncement?.aspectRatio ?? '16:9';
     _publishedAt = widget.initialAnnouncement?.publishedAt;
+    // En edición: toggle basado si published_at existe. En creación: on por defecto
+    if (widget.isEdit) {
+      _publishNow = widget.initialAnnouncement?.publishedAt != null;
+    } else {
+      _publishNow = true;
+      _publishedAt = DateTime.now().add(_publishSkewBuffer);
+    }
   }
 
   @override
@@ -88,6 +98,9 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
+    // Envío simple: si toggle está on, envía published_at; si está off, envía null
+    final publishedAtToSend = _publishNow ? _publishedAt : null;
+
     final data = <String, dynamic>{
       'title': _titleController.text.trim(),
       'description': _descriptionController.text.trim(),
@@ -96,12 +109,8 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
           : _mediaUrlController.text.trim(),
       'media_type': _mediaType,
       'aspect_ratio': _aspectRatio,
+      'published_at': publishedAtToSend?.toUtc().toIso8601String(),
     };
-
-    // Solo incluir published_at si tiene valor (mantener fecha existente en edición)
-    if (_publishedAt != null) {
-      data['published_at'] = _publishedAt!.toUtc().toIso8601String();
-    }
 
     if (widget.isEdit) {
       context.read<AnnouncementBloc>().add(
@@ -118,11 +127,14 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
     });
   }
 
-  Future<void> _pickAndUploadImage() async {
-    final picked = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+  Future<void> _pickAndUploadMedia() async {
+    final bool isVideo = _mediaType == 'video';
+    final XFile? picked = isVideo
+        ? await _imagePicker.pickVideo(source: ImageSource.gallery)
+        : await _imagePicker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 100,
+          );
     if (picked == null || !mounted) return;
 
     setState(() => _isUploadingImage = true);
@@ -134,13 +146,23 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
       _mediaUrlController.text = url;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Imagen subida correctamente')),
+        SnackBar(
+          content: Text(
+            isVideo
+                ? 'Video subido correctamente'
+                : 'Imagen subida correctamente',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isVideo ? 'Error al subir video: $e' : 'Error al subir imagen: $e',
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isUploadingImage = false);
@@ -214,6 +236,9 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
                             if (value == null || value.trim().isEmpty) {
                               return 'El título es obligatorio';
                             }
+                            if (value.trim().length < 3) {
+                              return 'El título debe tener al menos 3 caracteres';
+                            }
                             return null;
                           },
                         ),
@@ -238,7 +263,8 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
                     AnnouncementFormSection(
                       title: 'Media',
                       icon: Icons.image_rounded,
-                      subtitle: 'Puedes pegar una URL o subir desde galería.',
+                      subtitle:
+                          'Puedes pegar una URL o subir imagen/video desde galería.',
                       children: [
                         AnnouncementInputField(
                           controller: _mediaUrlController,
@@ -252,12 +278,16 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
                           hasImage: mediaUrl.isNotEmpty,
                           isUploading: _isUploadingImage,
                           isDisabled: isLoading,
-                          onUpload: _pickAndUploadImage,
+                          mediaType: _mediaType,
+                          onUpload: _pickAndUploadMedia,
                           onClear: _clearImage,
                         ),
                         const SizedBox(height: 10),
                         if (mediaUrl.isNotEmpty) ...[
-                          AnnouncementImagePreview(mediaUrl: mediaUrl),
+                          AnnouncementImagePreview(
+                            mediaUrl: mediaUrl,
+                            mediaType: _mediaType,
+                          ),
                         ] else ...[
                           const AnnouncementImagePlaceholder(),
                         ],
@@ -273,6 +303,14 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
                         const SizedBox(height: 12),
                         _buildAspectRatioDropdown(),
                       ],
+                    ),
+                    const SizedBox(height: 14),
+                    AnnouncementFormSection(
+                      title: 'Publicación',
+                      icon: Icons.publish_rounded,
+                      subtitle:
+                          'Actívalo para publicar el anuncio inmediatamente.',
+                      children: [_buildPublishToggle()],
                     ),
                     const SizedBox(height: 110),
                   ],
@@ -345,6 +383,49 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
           setState(() => _aspectRatio = value);
         }
       },
+    );
+  }
+
+  Widget _buildPublishToggle() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Publicar ahora',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              Text(
+                _publishNow
+                    ? 'Este anuncio quedara visible para los usuarios.'
+                    : 'Se guardara como no publicado.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Switch(
+          value: _publishNow,
+          onChanged: (value) {
+            setState(() {
+              _publishNow = value;
+              if (value) {
+                // Al activar: establece fecha futura
+                _publishedAt = DateTime.now().add(_publishSkewBuffer);
+              } else {
+                // Al desactivar: limpia la fecha
+                _publishedAt = null;
+              }
+            });
+          },
+        ),
+      ],
     );
   }
 }
