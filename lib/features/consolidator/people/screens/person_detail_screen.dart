@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
+import 'package:ms_app/features/consolidator/custom_fields/custom_field_repository.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/person_model.dart';
 import '../person_bloc.dart';
 import '../person_repository.dart';
@@ -44,6 +47,28 @@ class _PersonDetailView extends StatefulWidget {
 
 class _PersonDetailViewState extends State<_PersonDetailView> {
   PersonModel? _person;
+  Map<int, String> _fieldNames = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFieldNames();
+  }
+
+  Future<void> _loadFieldNames() async {
+    try {
+      final repo = CustomFieldRepository(
+        apiClient: widget.repository.apiClient,
+      );
+      final fields = await repo.getCustomFields();
+      if (!mounted) return;
+      setState(() {
+        _fieldNames = {for (final f in fields) f.id: f.name};
+      });
+    } catch (_) {
+      // Detalle sigue funcionando sin nombres de campos.
+    }
+  }
 
   String _formatDate(DateTime? date) {
     if (date == null) return '—';
@@ -225,9 +250,86 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  if ((person.qrPayload != null &&
+                          person.qrPayload!.isNotEmpty) ||
+                      (person.code != null && person.code!.isNotEmpty)) ...[
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant
+                                .withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            QrImageView(
+                              data: person.qrPayload ??
+                                  'MS-PERSON:${person.code}',
+                              version: QrVersions.auto,
+                              size: 180,
+                              backgroundColor: Colors.white,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              person.code != null
+                                  ? 'ID ${person.code}'
+                                  : (person.qrPayload ?? ''),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: colorScheme.primary,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () async {
+                                final payload = person.qrPayload ??
+                                    'MS-PERSON:${person.code}';
+                                await Clipboard.setData(
+                                  ClipboardData(text: payload),
+                                );
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Código QR copiado'),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.copy, size: 16),
+                              label: const Text('Copiar payload'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   _InfoCard(
                     title: 'Identificación',
                     children: [
+                      _InfoRow(
+                        label: 'Código',
+                        value: person.code ?? '—',
+                      ),
+                      _InfoRow(
+                        label: 'Edad',
+                        value: person.age != null
+                            ? '${person.age} años'
+                            : '—',
+                      ),
+                      if (person.turningAge != null ||
+                          person.isBirthdayToday == true)
+                        _InfoRow(
+                          label: 'Cumpleaños',
+                          value: person.isBirthdayToday == true
+                              ? '¡Hoy cumple ${person.turningAge ?? person.age ?? ''}!'
+                              : (person.turningAge != null
+                                  ? 'Cumple ${person.turningAge} este año'
+                                  : '—'),
+                        ),
                       _InfoRow(
                         label: 'Documento',
                         value: person.documentType != null &&
@@ -273,6 +375,21 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
                       ),
                     ],
                   ),
+                  if (person.customValues.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _InfoCard(
+                      title: 'Campos adicionales',
+                      children: person.customValues.map((cv) {
+                        final label = cv.customField?.name ??
+                            _fieldNames[cv.customFieldId] ??
+                            'Campo #${cv.customFieldId}';
+                        return _InfoRow(
+                          label: label,
+                          value: cv.displayValue(),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   if (person.isActive)
                     OutlinedButton.icon(

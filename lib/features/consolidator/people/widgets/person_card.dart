@@ -7,6 +7,10 @@ class PersonCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback? onDeactivate;
   final VoidCallback? onReactivate;
+  final bool selectionMode;
+  final bool selected;
+  final ValueChanged<bool>? onSelectedChanged;
+  final VoidCallback? onLongPress;
 
   const PersonCard({
     super.key,
@@ -15,6 +19,10 @@ class PersonCard extends StatelessWidget {
     required this.onEdit,
     this.onDeactivate,
     this.onReactivate,
+    this.selectionMode = false,
+    this.selected = false,
+    this.onSelectedChanged,
+    this.onLongPress,
   });
 
   @override
@@ -25,21 +33,35 @@ class PersonCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: Colors.white,
+        color: selected
+            ? colorScheme.primary.withValues(alpha: 0.08)
+            : Colors.white,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
+          onTap: selectionMode
+              ? () => onSelectedChanged?.call(!selected)
+              : onTap,
+          onLongPress: onLongPress,
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.32),
+                color: selected
+                    ? colorScheme.primary.withValues(alpha: 0.45)
+                    : colorScheme.outlineVariant.withValues(alpha: 0.32),
               ),
             ),
             child: Row(
               children: [
+                if (selectionMode) ...[
+                  Checkbox(
+                    value: selected,
+                    onChanged: (v) => onSelectedChanged?.call(v ?? false),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 CircleAvatar(
                   radius: 26,
                   backgroundColor: colorScheme.primary.withValues(alpha: 0.14),
@@ -68,6 +90,9 @@ class PersonCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         [
+                          if (person.code != null && person.code!.isNotEmpty)
+                            'ID ${person.code}',
+                          if (person.age != null) '${person.age} años',
                           if (person.documentType != null &&
                               person.documentNumber != null)
                             '${person.documentType} ${person.documentNumber}',
@@ -107,51 +132,52 @@ class PersonCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      onEdit();
-                    } else if (value == 'deactivate') {
-                      onDeactivate?.call();
-                    } else if (value == 'reactivate') {
-                      onReactivate?.call();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Editar'),
-                        ],
-                      ),
-                    ),
-                    if (active && onDeactivate != null)
+                if (!selectionMode)
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit();
+                      } else if (value == 'deactivate') {
+                        onDeactivate?.call();
+                      } else if (value == 'reactivate') {
+                        onReactivate?.call();
+                      }
+                    },
+                    itemBuilder: (context) => [
                       const PopupMenuItem(
-                        value: 'deactivate',
+                        value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.person_off_outlined, size: 20),
+                            Icon(Icons.edit, size: 20),
                             SizedBox(width: 8),
-                            Text('Desactivar'),
+                            Text('Editar'),
                           ],
                         ),
                       ),
-                    if (!active && onReactivate != null)
-                      const PopupMenuItem(
-                        value: 'reactivate',
-                        child: Row(
-                          children: [
-                            Icon(Icons.person_add_alt_1_outlined, size: 20),
-                            SizedBox(width: 8),
-                            Text('Reactivar'),
-                          ],
+                      if (active && onDeactivate != null)
+                        const PopupMenuItem(
+                          value: 'deactivate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.person_off_outlined, size: 20),
+                              SizedBox(width: 8),
+                              Text('Desactivar'),
+                            ],
+                          ),
                         ),
-                      ),
-                  ],
-                ),
+                      if (!active && onReactivate != null)
+                        const PopupMenuItem(
+                          value: 'reactivate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.person_add_alt_1_outlined, size: 20),
+                              SizedBox(width: 8),
+                              Text('Reactivar'),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
               ],
             ),
           ),

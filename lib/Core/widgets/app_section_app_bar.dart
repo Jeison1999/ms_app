@@ -3,6 +3,36 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/bloc/auth_event.dart';
 
+Future<bool> confirmLogout(BuildContext context) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Cerrar sesión'),
+      content: const Text('¿Seguro que quieres cerrar sesión?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Cerrar sesión'),
+        ),
+      ],
+    ),
+  );
+  return result == true;
+}
+
+Future<void> performLogout(BuildContext context) async {
+  final confirmed = await confirmLogout(context);
+  if (!confirmed || !context.mounted) return;
+
+  context.read<AuthBloc>().add(AuthLogoutRequested());
+  // Quita pantallas apiladas (detalle, listados, etc.) para que se vea el login.
+  Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+}
+
 abstract class AppSectionAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const AppSectionAppBar({super.key});
@@ -25,9 +55,7 @@ abstract class AppSectionAppBar extends StatelessWidget
   List<Widget> buildCustomActions(BuildContext context) => const [];
 
   @protected
-  void onLogout(BuildContext context) {
-    context.read<AuthBloc>().add(AuthLogoutRequested());
-  }
+  Future<void> onLogout(BuildContext context) => performLogout(context);
 
   @override
   Size get preferredSize =>
@@ -39,6 +67,7 @@ abstract class AppSectionAppBar extends StatelessWidget
       ...buildCustomActions(context),
       if (showLogoutButton)
         IconButton(
+          tooltip: 'Cerrar sesión',
           icon: const Icon(Icons.logout),
           onPressed: () => onLogout(context),
         ),
@@ -131,12 +160,18 @@ class DefaultSectionAppBar extends AppSectionAppBar {
   List<Widget> buildCustomActions(BuildContext context) => customActions;
 
   @override
-  void onLogout(BuildContext context) {
+  Future<void> onLogout(BuildContext context) async {
+    final confirmed = await confirmLogout(context);
+    if (!confirmed || !context.mounted) return;
+
     if (onLogoutPressed != null) {
       onLogoutPressed!.call();
-      return;
+    } else {
+      context.read<AuthBloc>().add(AuthLogoutRequested());
     }
-    super.onLogout(context);
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -145,6 +180,7 @@ class DefaultSectionAppBar extends AppSectionAppBar {
       ...buildCustomActions(context),
       if (showLogoutButton)
         IconButton(
+          tooltip: 'Cerrar sesión',
           icon: const Icon(Icons.logout),
           onPressed: () => onLogout(context),
         ),

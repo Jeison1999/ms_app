@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'models/person_filters.dart';
 import 'models/person_model.dart';
 import 'person_repository.dart';
 
@@ -6,10 +7,8 @@ import 'person_repository.dart';
 abstract class PersonEvent {}
 
 class LoadPeople extends PersonEvent {
-  final String? q;
-  final String? status;
-
-  LoadPeople({this.q, this.status});
+  final PersonFilters filters;
+  LoadPeople({PersonFilters? filters}) : filters = filters ?? PersonFilters();
 }
 
 class LoadPersonDetail extends PersonEvent {
@@ -38,6 +37,13 @@ class ReactivatePerson extends PersonEvent {
   ReactivatePerson(this.id);
 }
 
+class LoadBirthdaysToday extends PersonEvent {}
+
+class LoadBirthdaysMonth extends PersonEvent {
+  final int? month;
+  LoadBirthdaysMonth({this.month});
+}
+
 // ============= States =============
 abstract class PersonState {}
 
@@ -48,14 +54,32 @@ class PersonLoading extends PersonState {}
 class PeopleLoaded extends PersonState {
   final List<PersonModel> people;
   final int total;
-  final String? q;
-  final String? status;
+  final PersonFilters filters;
 
   PeopleLoaded({
     required this.people,
     required this.total,
-    this.q,
-    this.status,
+    required this.filters,
+  });
+}
+
+class BirthdaysLoaded extends PersonState {
+  final List<PersonModel> people;
+  final int total;
+  final String mode; // today | month
+  final String? date;
+  final int? month;
+  final int? year;
+  final int? todayCount;
+
+  BirthdaysLoaded({
+    required this.people,
+    required this.total,
+    required this.mode,
+    this.date,
+    this.month,
+    this.year,
+    this.todayCount,
   });
 }
 
@@ -77,21 +101,19 @@ class PersonError extends PersonState {
 // ============= BLoC =============
 class PersonBloc extends Bloc<PersonEvent, PersonState> {
   final PersonRepository repository;
+  PersonFilters currentFilters = PersonFilters();
 
   PersonBloc(this.repository) : super(PersonInitial()) {
     on<LoadPeople>((event, emit) async {
       emit(PersonLoading());
       try {
-        final result = await repository.getPeople(
-          q: event.q,
-          status: event.status,
-        );
+        currentFilters = event.filters;
+        final result = await repository.getPeople(filters: event.filters);
         emit(
           PeopleLoaded(
             people: result.people,
             total: result.total,
-            q: result.q ?? event.q,
-            status: result.status ?? event.status,
+            filters: event.filters,
           ),
         );
       } catch (e) {
@@ -144,6 +166,42 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
       try {
         await repository.reactivatePerson(event.id);
         emit(PersonSuccess('Persona reactivada'));
+      } catch (e) {
+        emit(PersonError(e.toString()));
+      }
+    });
+
+    on<LoadBirthdaysToday>((event, emit) async {
+      emit(PersonLoading());
+      try {
+        final result = await repository.getBirthdaysToday();
+        emit(
+          BirthdaysLoaded(
+            people: result.people,
+            total: result.total,
+            mode: 'today',
+            date: result.date,
+          ),
+        );
+      } catch (e) {
+        emit(PersonError(e.toString()));
+      }
+    });
+
+    on<LoadBirthdaysMonth>((event, emit) async {
+      emit(PersonLoading());
+      try {
+        final result = await repository.getBirthdaysMonth(month: event.month);
+        emit(
+          BirthdaysLoaded(
+            people: result.people,
+            total: result.total,
+            mode: 'month',
+            month: result.month ?? event.month,
+            year: result.year,
+            todayCount: result.todayCount,
+          ),
+        );
       } catch (e) {
         emit(PersonError(e.toString()));
       }

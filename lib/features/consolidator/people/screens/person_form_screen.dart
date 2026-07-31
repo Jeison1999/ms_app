@@ -3,9 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ms_app/core/services/cloudinary_service.dart';
 import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
+import 'package:ms_app/features/consolidator/custom_fields/custom_field_repository.dart';
+import 'package:ms_app/features/consolidator/custom_fields/models/custom_field_model.dart';
 import '../models/person_model.dart';
 import '../person_bloc.dart';
 import '../person_repository.dart';
+import '../utils/person_validators.dart';
+import '../utils/person_text_normalize.dart';
+import '../widgets/custom_fields_form_section.dart';
 
 class PersonFormScreen extends StatelessWidget {
   final PersonRepository repository;
@@ -26,6 +31,7 @@ class PersonFormScreen extends StatelessWidget {
       child: _PersonFormView(
         initialPerson: initialPerson,
         isEdit: _isEdit,
+        personRepository: repository,
       ),
     );
   }
@@ -34,10 +40,12 @@ class PersonFormScreen extends StatelessWidget {
 class _PersonFormView extends StatefulWidget {
   final PersonModel? initialPerson;
   final bool isEdit;
+  final PersonRepository personRepository;
 
   const _PersonFormView({
     required this.initialPerson,
     required this.isEdit,
+    required this.personRepository,
   });
 
   @override
@@ -62,8 +70,11 @@ class _PersonFormViewState extends State<_PersonFormView> {
   String? _sex;
   DateTime? _birthDate;
   bool _isUploadingImage = false;
+  bool _loadingFields = true;
+  String? _fieldsError;
+  CustomFieldsFormController? _customFieldsController;
 
-  static const documentTypes = ['CC', 'TI', 'CE', 'PA', 'NIT', 'OTRO'];
+  static const documentTypes = ['CC', 'TI', 'RC', 'CE', 'PA', 'OTHER'];
   static const sexOptions = <String, String>{
     'male': 'Masculino',
     'female': 'Femenino',
@@ -85,8 +96,38 @@ class _PersonFormViewState extends State<_PersonFormView> {
     _cityController = TextEditingController(text: p?.city ?? '');
     _photoUrlController = TextEditingController(text: p?.photoUrl ?? '');
     _documentType = p?.documentType;
+    if (_documentType == 'OTRO' || _documentType == 'NIT') {
+      _documentType = 'OTHER';
+    }
     _sex = p?.sex;
     _birthDate = p?.birthDate;
+    _loadCustomFields();
+  }
+
+  Future<void> _loadCustomFields() async {
+    try {
+      final repo = CustomFieldRepository(
+        apiClient: widget.personRepository.apiClient,
+      );
+      final fields = await repo.getCustomFields(active: true);
+      if (!mounted) return;
+      setState(() {
+        _customFieldsController = CustomFieldsFormController(
+          fields: fields,
+          initialValues: widget.initialPerson?.customValues ?? const [],
+        );
+        _loadingFields = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _fieldsError = e.toString();
+        _customFieldsController = CustomFieldsFormController(
+          fields: const <CustomFieldModel>[],
+        );
+        _loadingFields = false;
+      });
+    }
   }
 
   @override
@@ -99,6 +140,7 @@ class _PersonFormViewState extends State<_PersonFormView> {
     _addressController.dispose();
     _cityController.dispose();
     _photoUrlController.dispose();
+    _customFieldsController?.dispose();
     super.dispose();
   }
 
@@ -155,6 +197,21 @@ class _PersonFormViewState extends State<_PersonFormView> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
+    final birthError = PersonValidators.birthDate(_birthDate);
+    if (birthError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(birthError)),
+      );
+      return;
+    }
+
+    final customController = _customFieldsController;
+    if (customController != null && !customController.validate(context)) {
+      return;
+    }
+
+    final phone = PersonValidators.sanitizePhone(_phoneController.text);
+
     final data = <String, dynamic>{
       'first_name': _firstNameController.text.trim(),
       'last_name': _lastNameController.text.trim(),
@@ -164,21 +221,22 @@ class _PersonFormViewState extends State<_PersonFormView> {
           : _documentNumberController.text.trim(),
       'birth_date': _formatBirthDate(_birthDate),
       'sex': _sex,
-      'phone': _phoneController.text.trim().isEmpty
-          ? null
-          : _phoneController.text.trim(),
+      'phone': phone.isEmpty ? null : phone,
       'email': _emailController.text.trim().isEmpty
           ? null
           : _emailController.text.trim(),
       'address': _addressController.text.trim().isEmpty
           ? null
           : _addressController.text.trim(),
-      'city': _cityController.text.trim().isEmpty
-          ? null
-          : _cityController.text.trim(),
+      'city': () {
+        final city = PersonTextNormalize.titleCase(_cityController.text);
+        return city.isEmpty ? null : city;
+      }(),
       'photo_url': _photoUrlController.text.trim().isEmpty
           ? null
           : _photoUrlController.text.trim(),
+      if (customController != null)
+        'custom_values': customController.toPayload(),
     };
 
     if (widget.isEdit) {
@@ -222,178 +280,224 @@ class _PersonFormViewState extends State<_PersonFormView> {
           appBar: DefaultSectionAppBar(
             titleText: widget.isEdit ? 'Editar persona' : 'Nueva persona',
           ),
-          body: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              children: [
-                Center(
-                  child: Stack(
+          body: _loadingFields
+              ? const Center(child: CircularProgressIndicator())
+              : Form(
+                  key: _formKey,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                     children: [
-                      CircleAvatar(
-                        radius: 52,
-                        backgroundColor:
-                            colorScheme.primary.withValues(alpha: 0.14),
-                        backgroundImage: photoUrl.isNotEmpty
-                            ? NetworkImage(photoUrl)
-                            : null,
-                        child: photoUrl.isEmpty
-                            ? Icon(
-                                Icons.person,
-                                size: 48,
-                                color: colorScheme.primary,
-                              )
-                            : null,
-                      ),
-                      if (_isUploadingImage)
-                        const Positioned.fill(
-                          child: Center(child: CircularProgressIndicator()),
+                      if (_fieldsError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'No se pudieron cargar campos extra: $_fieldsError',
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
                         ),
+                      Center(
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 52,
+                              backgroundColor:
+                                  colorScheme.primary.withValues(alpha: 0.14),
+                              backgroundImage: photoUrl.isNotEmpty
+                                  ? NetworkImage(photoUrl)
+                                  : null,
+                              child: photoUrl.isEmpty
+                                  ? Icon(
+                                      Icons.person,
+                                      size: 48,
+                                      color: colorScheme.primary,
+                                    )
+                                  : null,
+                            ),
+                            if (_isUploadingImage)
+                              const Positioned.fill(
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton.icon(
+                            onPressed: loading || _isUploadingImage
+                                ? null
+                                : _pickAndUploadPhoto,
+                            icon: const Icon(Icons.photo_camera_outlined),
+                            label: const Text('Subir foto'),
+                          ),
+                          if (photoUrl.isNotEmpty)
+                            TextButton(
+                              onPressed: loading
+                                  ? null
+                                  : () {
+                                      _photoUrlController.clear();
+                                      setState(() {});
+                                    },
+                              child: const Text('Quitar'),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _firstNameController,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: _decoration(
+                          'Nombres *',
+                          icon: Icons.badge_outlined,
+                        ),
+                        validator: (v) =>
+                            PersonValidators.name(v, label: 'Nombres'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _lastNameController,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: _decoration(
+                          'Apellidos *',
+                          icon: Icons.badge_outlined,
+                        ),
+                        validator: (v) =>
+                            PersonValidators.name(v, label: 'Apellidos'),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        // ignore: deprecated_member_use
+                        value: _documentType,
+                        decoration: _decoration('Tipo de documento'),
+                        items: documentTypes
+                            .map(
+                              (t) =>
+                                  DropdownMenuItem(value: t, child: Text(t)),
+                            )
+                            .toList(),
+                        onChanged: loading
+                            ? null
+                            : (v) => setState(() => _documentType = v),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _documentNumberController,
+                        keyboardType:
+                            PersonValidators.isDigitDocumentType(_documentType)
+                            ? TextInputType.number
+                            : TextInputType.text,
+                        decoration: _decoration('Número de documento'),
+                        validator: (v) => PersonValidators.documentNumber(
+                          v,
+                          _documentType,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: loading ? null : _pickBirthDate,
+                        borderRadius: BorderRadius.circular(12),
+                        child: InputDecorator(
+                          decoration: _decoration(
+                            'Fecha de nacimiento',
+                            icon: Icons.cake_outlined,
+                          ),
+                          child: Text(
+                            _birthDate == null
+                                ? 'Seleccionar'
+                                : _formatBirthDate(_birthDate)!,
+                            style: TextStyle(
+                              color: _birthDate == null
+                                  ? Colors.black45
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        // ignore: deprecated_member_use
+                        value: _sex,
+                        decoration: _decoration('Sexo'),
+                        items: sexOptions.entries
+                            .map(
+                              (e) => DropdownMenuItem(
+                                value: e.key,
+                                child: Text(e.value),
+                              ),
+                            )
+                            .toList(),
+                        onChanged:
+                            loading ? null : (v) => setState(() => _sex = v),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration:
+                            _decoration('Teléfono', icon: Icons.phone),
+                        validator: PersonValidators.phone,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: _decoration(
+                          'Email',
+                          icon: Icons.email_outlined,
+                        ),
+                        validator: PersonValidators.email,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _addressController,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: _decoration(
+                          'Dirección',
+                          icon: Icons.home_outlined,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _cityController,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: _decoration(
+                          'Ciudad',
+                          icon: Icons.location_city_outlined,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      if (_customFieldsController != null)
+                        CustomFieldsFormSection(
+                          controller: _customFieldsController!,
+                          enabled: !loading,
+                        ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed:
+                            loading || _isUploadingImage ? null : _submit,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          child: loading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  widget.isEdit
+                                      ? 'Guardar cambios'
+                                      : 'Crear persona',
+                                ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton.icon(
-                      onPressed: loading || _isUploadingImage
-                          ? null
-                          : _pickAndUploadPhoto,
-                      icon: const Icon(Icons.photo_camera_outlined),
-                      label: const Text('Subir foto'),
-                    ),
-                    if (photoUrl.isNotEmpty)
-                      TextButton(
-                        onPressed: loading
-                            ? null
-                            : () {
-                                _photoUrlController.clear();
-                                setState(() {});
-                              },
-                        child: const Text('Quitar'),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _firstNameController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: _decoration('Nombres *', icon: Icons.badge_outlined),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Obligatorio' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _lastNameController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration:
-                      _decoration('Apellidos *', icon: Icons.badge_outlined),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Obligatorio' : null,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  // ignore: deprecated_member_use
-                  value: _documentType,
-                  decoration: _decoration('Tipo de documento'),
-                  items: documentTypes
-                      .map(
-                        (t) => DropdownMenuItem(value: t, child: Text(t)),
-                      )
-                      .toList(),
-                  onChanged: loading
-                      ? null
-                      : (v) => setState(() => _documentType = v),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _documentNumberController,
-                  keyboardType: TextInputType.number,
-                  decoration: _decoration('Número de documento'),
-                ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: loading ? null : _pickBirthDate,
-                  borderRadius: BorderRadius.circular(12),
-                  child: InputDecorator(
-                    decoration: _decoration(
-                      'Fecha de nacimiento',
-                      icon: Icons.cake_outlined,
-                    ),
-                    child: Text(
-                      _birthDate == null
-                          ? 'Seleccionar'
-                          : _formatBirthDate(_birthDate)!,
-                      style: TextStyle(
-                        color: _birthDate == null
-                            ? Colors.black45
-                            : Colors.black87,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  // ignore: deprecated_member_use
-                  value: _sex,
-                  decoration: _decoration('Sexo'),
-                  items: sexOptions.entries
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ),
-                      )
-                      .toList(),
-                  onChanged:
-                      loading ? null : (v) => setState(() => _sex = v),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: _decoration('Teléfono', icon: Icons.phone),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: _decoration('Email', icon: Icons.email_outlined),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _addressController,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration:
-                      _decoration('Dirección', icon: Icons.home_outlined),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _cityController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration:
-                      _decoration('Ciudad', icon: Icons.location_city_outlined),
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: loading || _isUploadingImage ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: loading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            widget.isEdit ? 'Guardar cambios' : 'Crear persona',
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );

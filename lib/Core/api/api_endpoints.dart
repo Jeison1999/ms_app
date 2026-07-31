@@ -33,6 +33,17 @@ class ApiEndpoints {
   static const String people = '$_base/people';
   static String personById(int id) => '$people/$id';
   static String reactivatePerson(int id) => '$people/$id/reactivate';
+  static String personQr(int id) => '$people/$id/qr';
+  static const String peopleBirthdaysToday = '$people/birthdays/today';
+  static const String peopleBirthdaysMonth = '$people/birthdays/month';
+  static const String peopleFilterOptions = '$people/filter_options';
+  static const String peopleExport = '$people/export';
+
+  // Custom fields endpoints (campos dinámicos de personas)
+  static const String customFields = '$_base/custom_fields';
+  static String customFieldById(int id) => '$customFields/$id';
+  static String reactivateCustomField(int id) =>
+      '$customFields/$id/reactivate';
 
   // Sales endpoints
   static const String salesBase = '$_base/sales';
