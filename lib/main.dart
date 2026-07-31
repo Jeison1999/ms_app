@@ -11,6 +11,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'routes/role_based_router.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MsApp());
 }
 
@@ -32,17 +33,25 @@ class MsApp extends StatelessWidget {
         title: 'MS App',
         theme: AppTheme.lightTheme,
         home: BlocBuilder<AuthBloc, AuthState>(
+          // No reconstruir al pasar Initial ↔ Checking: conserva la animación del splash.
+          buildWhen: (previous, current) {
+            final stayingOnSplash =
+                (previous is AuthInitial || previous is AuthChecking) &&
+                (current is AuthInitial || current is AuthChecking);
+            if (stayingOnSplash) return false;
+            return previous.runtimeType != current.runtimeType;
+          },
           builder: (context, state) {
-            if (state is AuthInitial || state is AuthChecking) {
-              return const SplashScreen();
-            } else if (state is AuthAuthenticated) {
+            if (state is AuthAuthenticated) {
               return RoleBasedRouter.getHomeScreen(
                 state.user,
                 apiClient: apiClient,
               );
-            } else {
-              return const LoginScreen();
             }
+            if (state is AuthInitial || state is AuthChecking) {
+              return const SplashScreen();
+            }
+            return const LoginScreen();
           },
         ),
       ),

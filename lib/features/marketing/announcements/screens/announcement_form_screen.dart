@@ -330,7 +330,7 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
       borderSide: BorderSide(color: colorScheme.outlineVariant),
     );
     return DropdownButtonFormField<String>(
-      value: _mediaType,
+      initialValue: _mediaType,
       decoration: InputDecoration(
         labelText: 'Tipo de media',
         prefixIcon: const Icon(Icons.image_rounded),
@@ -363,7 +363,7 @@ class _AnnouncementFormViewState extends State<_AnnouncementFormView> {
       borderSide: BorderSide(color: colorScheme.outlineVariant),
     );
     return DropdownButtonFormField<String>(
-      value: _aspectRatio,
+      initialValue: _aspectRatio,
       decoration: InputDecoration(
         labelText: 'Relación de aspecto',
         prefixIcon: const Icon(Icons.aspect_ratio_rounded),
