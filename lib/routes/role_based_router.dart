@@ -22,7 +22,7 @@ class RoleBasedRouter {
 
     // User Manager -> Consolidador
     if (user.isUserManager) {
-      return const ConsolidatorHomeScreen();
+      return ConsolidatorHomeScreen(apiClient: apiClient);
     }
 
     // Sales Agent -> Ventas

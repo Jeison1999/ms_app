@@ -1,6 +1,8 @@
 //configuración de la aplicación, como URLs base, rutas de API, y tiempos de espera para las solicitudes HTTP.
 class Environment {
-  static const String baseUrl = 'https://api.mstucasa.com/';
+  // Desarrollo local (Rails :3000). En celular físico usa la IP LAN del PC (no localhost).
+  // Emulador Android: http://10.0.2.2:3000/
+  static const String baseUrl = 'http://localhost:3000/';
   static const String apiVersion = 'v1';
   static const String apiBasePath = '/api/$apiVersion';
   static const String cloudinaryCloudName = 'dsm6diilz';

@@ -35,11 +35,13 @@ class AdminHomeScreen extends StatelessWidget {
       ),
       _AdminModule(
         title: 'Consolidador',
-        subtitle: 'Gestión de usuarios',
+        subtitle: 'Gestión de personas',
         icon: Icons.people_alt_rounded,
         onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ConsolidatorHomeScreen()),
+            MaterialPageRoute(
+              builder: (_) => ConsolidatorHomeScreen(apiClient: apiClient),
+            ),
           );
         },
       ),

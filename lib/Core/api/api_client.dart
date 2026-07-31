@@ -133,11 +133,20 @@ class ApiClient {
           statusCode: 408,
         );
       case DioExceptionType.badResponse:
+        final data = error.response?.data;
+        String message = 'Error del servidor';
+        if (data is Map) {
+          if (data['details'] is List && (data['details'] as List).isNotEmpty) {
+            message = (data['details'] as List).join('\n');
+          } else {
+            message =
+                data['error']?.toString() ??
+                data['message']?.toString() ??
+                message;
+          }
+        }
         return ApiException(
-          message:
-              error.response?.data['error'] ??
-              error.response?.data['message'] ??
-              'Error del servidor',
+          message: message,
           statusCode: error.response?.statusCode ?? 500,
         );
       case DioExceptionType.cancel:

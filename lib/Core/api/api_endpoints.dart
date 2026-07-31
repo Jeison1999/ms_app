@@ -29,6 +29,11 @@ class ApiEndpoints {
   // Users endpoints
   static const String usersBase = '$_base/users';
 
+  // People endpoints (Submodulo de consolidación)
+  static const String people = '$_base/people';
+  static String personById(int id) => '$people/$id';
+  static String reactivatePerson(int id) => '$people/$id/reactivate';
+
   // Sales endpoints
   static const String salesBase = '$_base/sales';
   static const String debtors = '$salesBase/debtors';
