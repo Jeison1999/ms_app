@@ -45,6 +45,25 @@ class ApiEndpoints {
   static String reactivateCustomField(int id) =>
       '$customFields/$id/reactivate';
 
+  // Attendance endpoints (solo administrator)
+  static const String attendanceBase = '$_base/attendance';
+  static const String attendanceGroups = '$attendanceBase/groups';
+  static String attendanceGroupById(int id) => '$attendanceGroups/$id';
+  static String attendanceGroupAddMembers(int id) =>
+      '$attendanceGroups/$id/add_members';
+  static String attendanceGroupRemoveMembers(int id) =>
+      '$attendanceGroups/$id/remove_members';
+  static const String attendanceEvents = '$attendanceBase/events';
+  static String attendanceEventById(int id) => '$attendanceEvents/$id';
+  static String attendanceEventRecords(int id) =>
+      '$attendanceEvents/$id/records';
+  static String attendanceEventClose(int id) =>
+      '$attendanceEvents/$id/close';
+  static const String attendanceAbsencesReport =
+      '$attendanceBase/reports/absences';
+  static const String attendanceAbsencesExport =
+      '$attendanceBase/reports/absences/export';
+
   // Sales endpoints
   static const String salesBase = '$_base/sales';
   static const String debtors = '$salesBase/debtors';

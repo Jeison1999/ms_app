@@ -4,6 +4,7 @@ import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_text_styles.dart';
 import '../../../Core/widgets/app_section_app_bar.dart';
 import '../../accounting/screens/accounting_home_screen.dart';
+import '../../attendance/screens/attendance_home_screen.dart';
 import '../../consolidator/screens/consolidator_home_screen.dart';
 import '../../marketing/marketing_home/screens/marketing_home_screen.dart';
 import '../../sales/screens/sales_home_screen.dart';
@@ -41,6 +42,18 @@ class AdminHomeScreen extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => ConsolidatorHomeScreen(apiClient: apiClient),
+            ),
+          );
+        },
+      ),
+      _AdminModule(
+        title: 'Asistencia',
+        subtitle: 'Grupos, cultos e informe',
+        icon: Icons.fact_check_rounded,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => AttendanceHomeScreen(apiClient: apiClient),
             ),
           );
         },

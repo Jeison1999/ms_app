@@ -2,7 +2,7 @@
 class Environment {
   // Desarrollo local (Rails :3000). En celular físico usa la IP LAN del PC (no localhost).
   // Emulador Android: http://10.0.2.2:3000/
-  static const String baseUrl = 'http://localhost:3000/';
+  static const String baseUrl = 'https://api.mstucasa.com/';
   static const String apiVersion = 'v1';
   static const String apiBasePath = '/api/$apiVersion';
   static const String cloudinaryCloudName = 'dsm6diilz';
