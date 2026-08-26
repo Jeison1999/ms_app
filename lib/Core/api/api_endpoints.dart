@@ -39,6 +39,15 @@ class ApiEndpoints {
   static const String peopleFilterOptions = '$people/filter_options';
   static const String peopleExport = '$people/export';
 
+  // Portal público de personas (admin / consolidador)
+  static const String personPortal = '$_base/person_portal';
+  static const String personRegistrations = '$_base/person_registrations';
+  static String personRegistrationById(int id) => '$personRegistrations/$id';
+  static String approvePersonRegistration(int id) =>
+      '$personRegistrations/$id/approve';
+  static String rejectPersonRegistration(int id) =>
+      '$personRegistrations/$id/reject';
+
   // Custom fields endpoints (campos dinámicos de personas)
   static const String customFields = '$_base/custom_fields';
   static String customFieldById(int id) => '$customFields/$id';

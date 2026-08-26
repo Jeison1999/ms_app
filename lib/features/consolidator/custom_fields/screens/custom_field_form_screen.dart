@@ -48,6 +48,8 @@ class _CustomFieldFormViewState extends State<_CustomFieldFormView> {
   late final TextEditingController _optionsController;
   late String _fieldType;
   late bool _required;
+  late bool _includeInPublicForm;
+  late bool _publicRequired;
   bool _keyEdited = false;
 
   @override
@@ -59,6 +61,8 @@ class _CustomFieldFormViewState extends State<_CustomFieldFormView> {
     _helpController = TextEditingController(text: f?.helpText ?? '');
     _fieldType = f?.fieldType ?? 'text';
     _required = f?.required ?? false;
+    _includeInPublicForm = f?.includeInPublicForm ?? false;
+    _publicRequired = f?.publicRequired ?? false;
     _optionsController = TextEditingController(
       text: (f?.options ?? [])
           .map((o) => o.label == o.value ? o.label : '${o.label}|${o.value}')
@@ -99,6 +103,7 @@ class _CustomFieldFormViewState extends State<_CustomFieldFormView> {
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
         .toList();
+    final existing = widget.initialField?.options ?? [];
     final options = <Map<String, dynamic>>[];
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
@@ -107,11 +112,15 @@ class _CustomFieldFormViewState extends State<_CustomFieldFormView> {
       final value = parts.length > 1
           ? parts[1].trim()
           : _slugify(label);
-      options.add({
+      final map = <String, dynamic>{
         'label': label,
         'value': value.isEmpty ? _slugify(label) : value,
         'position': i,
-      });
+      };
+      if (i < existing.length && existing[i].id != null) {
+        map['id'] = existing[i].id;
+      }
+      options.add(map);
     }
     return options;
   }
@@ -132,10 +141,13 @@ class _CustomFieldFormViewState extends State<_CustomFieldFormView> {
       'key': _keyController.text.trim(),
       'field_type': _fieldType,
       'required': _required,
+      'include_in_public_form': _includeInPublicForm,
+      'public_required': _includeInPublicForm && _publicRequired,
       'help_text': _helpController.text.trim().isEmpty
           ? null
           : _helpController.text.trim(),
-      if (_needsOptions) 'options': _parseOptions(),
+      if (_needsOptions)
+        'custom_field_options_attributes': _parseOptions(),
     };
 
     if (widget.isEdit) {
@@ -247,6 +259,29 @@ class _CustomFieldFormViewState extends State<_CustomFieldFormView> {
                       ? null
                       : (v) => setState(() => _required = v),
                 ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Incluir en formulario web'),
+                  subtitle: const Text(
+                    'Si se activa, el portal público puede auto-abrirse',
+                  ),
+                  value: _includeInPublicForm,
+                  onChanged: loading
+                      ? null
+                      : (v) => setState(() {
+                            _includeInPublicForm = v;
+                            if (!v) _publicRequired = false;
+                          }),
+                ),
+                if (_includeInPublicForm)
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Obligatorio en la web'),
+                    value: _publicRequired,
+                    onChanged: loading
+                        ? null
+                        : (v) => setState(() => _publicRequired = v),
+                  ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _helpController,

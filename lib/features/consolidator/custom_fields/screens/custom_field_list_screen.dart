@@ -182,6 +182,7 @@ class _CustomFieldListScreenState extends State<CustomFieldListScreen> {
                               '${CustomFieldModel.typeLabel(field.fieldType)}'
                               ' · ${field.key}'
                               '${field.required ? ' · Obligatorio' : ''}'
+                              '${field.includeInPublicForm ? ' · Web' : ''}'
                               '${field.active ? '' : ' · Inactivo'}',
                             ),
                             trailing: PopupMenuButton<String>(

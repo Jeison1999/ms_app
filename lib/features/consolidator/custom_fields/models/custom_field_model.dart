@@ -39,6 +39,8 @@ class CustomFieldModel {
   final bool active;
   final int position;
   final String? helpText;
+  final bool includeInPublicForm;
+  final bool publicRequired;
   final List<CustomFieldOption> options;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -52,6 +54,8 @@ class CustomFieldModel {
     required this.active,
     this.position = 0,
     this.helpText,
+    this.includeInPublicForm = false,
+    this.publicRequired = false,
     this.options = const [],
     this.createdAt,
     this.updatedAt,
@@ -131,6 +135,8 @@ class CustomFieldModel {
       active: json['active'] as bool? ?? true,
       position: json['position'] as int? ?? 0,
       helpText: json['help_text'] as String?,
+      includeInPublicForm: json['include_in_public_form'] as bool? ?? false,
+      publicRequired: json['public_required'] as bool? ?? false,
       options: options,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)

@@ -12,6 +12,9 @@ import 'package:ms_app/features/consolidator/people/person_bloc.dart';
 import 'package:ms_app/features/consolidator/people/person_repository.dart';
 import 'package:ms_app/features/consolidator/people/screens/birthday_list_screen.dart';
 import 'package:ms_app/features/consolidator/people/screens/person_list_screen.dart';
+import 'package:ms_app/features/consolidator/person_portal/person_portal_repository.dart';
+import 'package:ms_app/features/consolidator/person_portal/screens/person_portal_settings_screen.dart';
+import 'package:ms_app/features/consolidator/person_portal/screens/person_registration_list_screen.dart';
 
 class ConsolidatorHomeScreen extends StatefulWidget {
   final ApiClient apiClient;
@@ -25,12 +28,15 @@ class ConsolidatorHomeScreen extends StatefulWidget {
 class _ConsolidatorHomeScreenState extends State<ConsolidatorHomeScreen> {
   int? _todayCount;
   int? _monthCount;
+  int? _pendingRegistrations;
   bool _loadingBirthdays = true;
+  bool _portalEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _loadBirthdayCounts();
+    _loadPortalMeta();
   }
 
   Future<void> _loadBirthdayCounts() async {
@@ -52,6 +58,29 @@ class _ConsolidatorHomeScreenState extends State<ConsolidatorHomeScreen> {
         _loadingBirthdays = false;
       });
     }
+  }
+
+  Future<void> _loadPortalMeta() async {
+    try {
+      final portal = await PersonPortalRepository(
+        apiClient: widget.apiClient,
+      ).getPortal();
+      if (!mounted) return;
+      setState(() {
+        _pendingRegistrations = portal.pendingRegistrationsCount;
+        _portalEnabled = portal.enabled;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _pendingRegistrations = null;
+        _portalEnabled = false;
+      });
+    }
+  }
+
+  Future<void> _refreshHome() async {
+    await Future.wait([_loadBirthdayCounts(), _loadPortalMeta()]);
   }
 
   void _openBirthdays(BirthdayListMode mode) {
@@ -86,7 +115,7 @@ class _ConsolidatorHomeScreenState extends State<ConsolidatorHomeScreen> {
     return Scaffold(
       appBar: const DefaultSectionAppBar(titleText: 'Consolidador'),
       body: RefreshIndicator(
-        onRefresh: _loadBirthdayCounts,
+        onRefresh: _refreshHome,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -215,7 +244,50 @@ class _ConsolidatorHomeScreenState extends State<ConsolidatorHomeScreen> {
                         child: const CustomFieldListScreen(),
                       ),
                     ),
-                  );
+                  ).then((_) => _loadPortalMeta());
+                },
+              ),
+              const SizedBox(height: 12),
+              _ModuleCard(
+                title: 'Portal web',
+                subtitle: _portalEnabled
+                    ? 'Sección pública activa'
+                    : 'Configura y activa el formulario web',
+                icon: Icons.public,
+                accentColor: colorScheme.primary,
+                badge: _portalEnabled ? 'ON' : null,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PersonPortalSettingsScreen(
+                        repository: PersonPortalRepository(
+                          apiClient: widget.apiClient,
+                        ),
+                      ),
+                    ),
+                  ).then((_) => _loadPortalMeta());
+                },
+              ),
+              const SizedBox(height: 12),
+              _ModuleCard(
+                title: 'Solicitudes web',
+                subtitle: 'Aprobar o rechazar altas y actualizaciones',
+                icon: Icons.inbox_outlined,
+                accentColor: Colors.deepOrange,
+                badge: (_pendingRegistrations != null &&
+                        _pendingRegistrations! > 0)
+                    ? '${_pendingRegistrations!}'
+                    : null,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PersonRegistrationListScreen(
+                        repository: PersonPortalRepository(
+                          apiClient: widget.apiClient,
+                        ),
+                      ),
+                    ),
+                  ).then((_) => _loadPortalMeta());
                 },
               ),
             ],
@@ -304,6 +376,7 @@ class _ModuleCard extends StatelessWidget {
   final IconData icon;
   final Color accentColor;
   final VoidCallback onTap;
+  final String? badge;
 
   const _ModuleCard({
     required this.title,
@@ -311,6 +384,7 @@ class _ModuleCard extends StatelessWidget {
     required this.icon,
     required this.accentColor,
     required this.onTap,
+    this.badge,
   });
 
   @override
@@ -348,7 +422,32 @@ class _ModuleCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: AppTextStyles.cardTitle),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(title, style: AppTextStyles.cardTitle),
+                        ),
+                        if (badge != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              badge!,
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 3),
                     Text(subtitle, style: AppTextStyles.cardSubtitle),
                   ],

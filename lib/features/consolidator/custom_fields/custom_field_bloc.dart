@@ -73,8 +73,17 @@ class CustomFieldBloc extends Bloc<CustomFieldEvent, CustomFieldState> {
     on<CreateCustomField>((event, emit) async {
       emit(CustomFieldLoading());
       try {
-        await repository.createCustomField(event.fieldData);
-        emit(CustomFieldSuccess('Campo creado exitosamente'));
+        final result = await repository.createCustomField(event.fieldData);
+        var message = 'Campo creado exitosamente';
+        if (result.portalEnabled &&
+            result.portalAutoEnabledReason != null &&
+            result.portalAutoEnabledReason!.isNotEmpty) {
+          message =
+              'Campo creado. Portal web auto-activado: ${result.portalAutoEnabledReason}';
+        } else if (result.field.includeInPublicForm && result.portalEnabled) {
+          message = 'Campo creado e incluido en el formulario web';
+        }
+        emit(CustomFieldSuccess(message));
         final fields = await repository.getCustomFields(
           active: _lastActiveFilter,
         );
@@ -87,8 +96,18 @@ class CustomFieldBloc extends Bloc<CustomFieldEvent, CustomFieldState> {
     on<UpdateCustomField>((event, emit) async {
       emit(CustomFieldLoading());
       try {
-        await repository.updateCustomField(event.id, event.fieldData);
-        emit(CustomFieldSuccess('Campo actualizado exitosamente'));
+        final result = await repository.updateCustomField(
+          event.id,
+          event.fieldData,
+        );
+        var message = 'Campo actualizado exitosamente';
+        if (result.portalEnabled &&
+            result.portalAutoEnabledReason != null &&
+            result.portalAutoEnabledReason!.isNotEmpty) {
+          message =
+              'Campo actualizado. Portal web auto-activado: ${result.portalAutoEnabledReason}';
+        }
+        emit(CustomFieldSuccess(message));
         final fields = await repository.getCustomFields(
           active: _lastActiveFilter,
         );

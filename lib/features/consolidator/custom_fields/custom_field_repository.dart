@@ -2,6 +2,18 @@ import '../../../core/api/api_client.dart';
 import '../../../core/api/api_endpoints.dart';
 import 'models/custom_field_model.dart';
 
+class CustomFieldWriteResult {
+  final CustomFieldModel field;
+  final bool portalEnabled;
+  final String? portalAutoEnabledReason;
+
+  CustomFieldWriteResult({
+    required this.field,
+    this.portalEnabled = false,
+    this.portalAutoEnabledReason,
+  });
+}
+
 class CustomFieldRepository {
   final ApiClient apiClient;
 
@@ -31,18 +43,17 @@ class CustomFieldRepository {
     return CustomFieldModel.fromJson(data);
   }
 
-  Future<CustomFieldModel> createCustomField(
+  Future<CustomFieldWriteResult> createCustomField(
     Map<String, dynamic> fieldData,
   ) async {
     final response = await apiClient.post(
       ApiEndpoints.customFields,
       data: {'custom_field': fieldData},
     );
-    final data = response.data['custom_field'] as Map<String, dynamic>;
-    return CustomFieldModel.fromJson(data);
+    return _writeResultFrom(response.data as Map<String, dynamic>);
   }
 
-  Future<CustomFieldModel> updateCustomField(
+  Future<CustomFieldWriteResult> updateCustomField(
     int id,
     Map<String, dynamic> fieldData,
   ) async {
@@ -50,8 +61,22 @@ class CustomFieldRepository {
       ApiEndpoints.customFieldById(id),
       data: {'custom_field': fieldData},
     );
-    final data = response.data['custom_field'] as Map<String, dynamic>;
-    return CustomFieldModel.fromJson(data);
+    return _writeResultFrom(response.data as Map<String, dynamic>);
+  }
+
+  CustomFieldWriteResult _writeResultFrom(Map<String, dynamic> data) {
+    final field = CustomFieldModel.fromJson(
+      data['custom_field'] as Map<String, dynamic>,
+    );
+    final portal = data['person_portal'];
+    if (portal is Map) {
+      return CustomFieldWriteResult(
+        field: field,
+        portalEnabled: portal['enabled'] as bool? ?? false,
+        portalAutoEnabledReason: portal['auto_enabled_reason']?.toString(),
+      );
+    }
+    return CustomFieldWriteResult(field: field);
   }
 
   Future<void> deactivateCustomField(int id) async {
