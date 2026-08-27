@@ -161,6 +161,15 @@ class PersonRepository {
     return PersonModel.fromJson(data);
   }
 
+  // POST /api/v1/people/:id/purge (solo administrator)
+  Future<int> purgePerson(int id, {required String confirmation}) async {
+    final response = await apiClient.post(
+      ApiEndpoints.personPurge(id),
+      data: {'confirmation': confirmation},
+    );
+    return (response.data['person_id'] as num).toInt();
+  }
+
   // GET /api/v1/people/birthdays/today
   Future<BirthdaysResult> getBirthdaysToday() async {
     final response = await apiClient.get(ApiEndpoints.peopleBirthdaysToday);

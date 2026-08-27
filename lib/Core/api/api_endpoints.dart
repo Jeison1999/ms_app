@@ -32,6 +32,7 @@ class ApiEndpoints {
   // People endpoints (Submodulo de consolidación)
   static const String people = '$_base/people';
   static String personById(int id) => '$people/$id';
+  static String personPurge(int id) => '$people/$id/purge';
   static String reactivatePerson(int id) => '$people/$id/reactivate';
   static String personQr(int id) => '$people/$id/qr';
   static const String peopleBirthdaysToday = '$people/birthdays/today';
@@ -43,6 +44,8 @@ class ApiEndpoints {
   static const String personPortal = '$_base/person_portal';
   static const String personRegistrations = '$_base/person_registrations';
   static String personRegistrationById(int id) => '$personRegistrations/$id';
+  static const personRegistrationsCleanupRejected =
+      '$personRegistrations/cleanup_rejected';
   static String approvePersonRegistration(int id) =>
       '$personRegistrations/$id/approve';
   static String rejectPersonRegistration(int id) =>
@@ -51,6 +54,7 @@ class ApiEndpoints {
   // Custom fields endpoints (campos dinámicos de personas)
   static const String customFields = '$_base/custom_fields';
   static String customFieldById(int id) => '$customFields/$id';
+  static String customFieldPurge(int id) => '$customFields/$id/purge';
   static String reactivateCustomField(int id) =>
       '$customFields/$id/reactivate';
 

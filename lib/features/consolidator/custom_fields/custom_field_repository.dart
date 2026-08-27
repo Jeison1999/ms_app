@@ -14,6 +14,16 @@ class CustomFieldWriteResult {
   });
 }
 
+class CustomFieldPurgeResult {
+  final String message;
+  final int deletedValuesCount;
+
+  CustomFieldPurgeResult({
+    required this.message,
+    required this.deletedValuesCount,
+  });
+}
+
 class CustomFieldRepository {
   final ApiClient apiClient;
 
@@ -89,5 +99,21 @@ class CustomFieldRepository {
     );
     final data = response.data['custom_field'] as Map<String, dynamic>;
     return CustomFieldModel.fromJson(data);
+  }
+
+  // POST /api/v1/custom_fields/:id/purge
+  Future<CustomFieldPurgeResult> purgeCustomField(
+    int id, {
+    bool force = false,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndpoints.customFieldPurge(id),
+      data: force ? {'force': true} : {},
+    );
+    final data = response.data as Map<String, dynamic>;
+    return CustomFieldPurgeResult(
+      message: data['message']?.toString() ?? 'Campo eliminado',
+      deletedValuesCount: (data['deleted_values_count'] as num?)?.toInt() ?? 0,
+    );
   }
 }

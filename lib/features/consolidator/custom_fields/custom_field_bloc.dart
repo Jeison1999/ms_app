@@ -31,6 +31,12 @@ class ReactivateCustomField extends CustomFieldEvent {
   ReactivateCustomField(this.id);
 }
 
+class PurgeCustomField extends CustomFieldEvent {
+  final int id;
+  final bool force;
+  PurgeCustomField(this.id, {this.force = false});
+}
+
 // ============= States =============
 abstract class CustomFieldState {}
 
@@ -136,6 +142,28 @@ class CustomFieldBloc extends Bloc<CustomFieldEvent, CustomFieldState> {
       try {
         await repository.reactivateCustomField(event.id);
         emit(CustomFieldSuccess('Campo reactivado'));
+        final fields = await repository.getCustomFields(
+          active: _lastActiveFilter,
+        );
+        emit(CustomFieldsLoaded(fields));
+      } catch (e) {
+        emit(CustomFieldError(e.toString()));
+      }
+    });
+
+    on<PurgeCustomField>((event, emit) async {
+      emit(CustomFieldLoading());
+      try {
+        final result = await repository.purgeCustomField(
+          event.id,
+          force: event.force,
+        );
+        var message = result.message;
+        if (result.deletedValuesCount > 0) {
+          message =
+              '${result.message} (${result.deletedValuesCount} valor(es) borrados)';
+        }
+        emit(CustomFieldSuccess(message));
         final fields = await repository.getCustomFields(
           active: _lastActiveFilter,
         );

@@ -41,6 +41,8 @@ class CustomFieldModel {
   final String? helpText;
   final bool includeInPublicForm;
   final bool publicRequired;
+  final int valuesCount;
+  final bool purgeableWithoutForce;
   final List<CustomFieldOption> options;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -56,6 +58,8 @@ class CustomFieldModel {
     this.helpText,
     this.includeInPublicForm = false,
     this.publicRequired = false,
+    this.valuesCount = 0,
+    this.purgeableWithoutForce = true,
     this.options = const [],
     this.createdAt,
     this.updatedAt,
@@ -137,6 +141,10 @@ class CustomFieldModel {
       helpText: json['help_text'] as String?,
       includeInPublicForm: json['include_in_public_form'] as bool? ?? false,
       publicRequired: json['public_required'] as bool? ?? false,
+      valuesCount: (json['values_count'] as num?)?.toInt() ?? 0,
+      purgeableWithoutForce:
+          json['purgeable_without_force'] as bool? ??
+          ((json['values_count'] as num?)?.toInt() ?? 0) == 0,
       options: options,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)

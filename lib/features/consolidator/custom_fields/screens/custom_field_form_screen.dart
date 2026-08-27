@@ -251,32 +251,66 @@ class _CustomFieldFormViewState extends State<_CustomFieldFormView> {
                     ),
                   ),
                 const SizedBox(height: 12),
+                Text(
+                  'App de consolidación',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 4),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Obligatorio'),
+                  title: const Text('Obligatorio al crear/editar persona'),
+                  subtitle: const Text(
+                    'Solo aplica en la app interna (consolidador)',
+                  ),
                   value: _required,
                   onChanged: loading
                       ? null
                       : (v) => setState(() => _required = v),
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  'Portal web público',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 4),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Incluir en formulario web'),
+                  title: const Text('Mostrar en el formulario web'),
                   subtitle: const Text(
-                    'Si se activa, el portal público puede auto-abrirse',
+                    'La gente lo verá al registrarse o actualizar datos',
                   ),
                   value: _includeInPublicForm,
                   onChanged: loading
                       ? null
                       : (v) => setState(() {
                             _includeInPublicForm = v;
-                            if (!v) _publicRequired = false;
+                            if (!v) {
+                              _publicRequired = false;
+                            } else if (_required) {
+                              // Por defecto, si ya es obligatorio en app,
+                              // suele serlo también en la web.
+                              _publicRequired = true;
+                            }
                           }),
                 ),
                 if (_includeInPublicForm)
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Obligatorio en la web'),
+                    subtitle: Text(
+                      _required
+                          ? 'Puede ser distinto al de la app. '
+                              'Desactívalo si en la web es opcional.'
+                          : 'El visitante debe completarlo para enviar la solicitud',
+                    ),
                     value: _publicRequired,
                     onChanged: loading
                         ? null

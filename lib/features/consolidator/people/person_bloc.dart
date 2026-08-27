@@ -37,6 +37,12 @@ class ReactivatePerson extends PersonEvent {
   ReactivatePerson(this.id);
 }
 
+class PurgePerson extends PersonEvent {
+  final int id;
+  final String confirmation;
+  PurgePerson(this.id, {required this.confirmation});
+}
+
 class LoadBirthdaysToday extends PersonEvent {}
 
 class LoadBirthdaysMonth extends PersonEvent {
@@ -166,6 +172,19 @@ class PersonBloc extends Bloc<PersonEvent, PersonState> {
       try {
         await repository.reactivatePerson(event.id);
         emit(PersonSuccess('Persona reactivada'));
+      } catch (e) {
+        emit(PersonError(e.toString()));
+      }
+    });
+
+    on<PurgePerson>((event, emit) async {
+      emit(PersonLoading());
+      try {
+        await repository.purgePerson(
+          event.id,
+          confirmation: event.confirmation,
+        );
+        emit(PersonSuccess('Persona eliminada permanentemente'));
       } catch (e) {
         emit(PersonError(e.toString()));
       }

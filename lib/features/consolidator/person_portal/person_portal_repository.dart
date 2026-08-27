@@ -86,4 +86,20 @@ class PersonPortalRepository {
     final data = response.data['registration'] as Map<String, dynamic>;
     return PersonRegistrationModel.fromJson(data);
   }
+
+  // DELETE /api/v1/person_registrations/:id (solo rejected)
+  Future<int> deleteRegistration(int id) async {
+    final response = await apiClient.delete(
+      ApiEndpoints.personRegistrationById(id),
+    );
+    return (response.data['registration_id'] as num).toInt();
+  }
+
+  // DELETE /api/v1/person_registrations/cleanup_rejected
+  Future<int> cleanupRejectedRegistrations() async {
+    final response = await apiClient.delete(
+      ApiEndpoints.personRegistrationsCleanupRejected,
+    );
+    return (response.data['deleted_count'] as num).toInt();
+  }
 }

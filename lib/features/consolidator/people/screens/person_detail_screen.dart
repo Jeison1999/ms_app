@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
+import 'package:ms_app/features/auth/bloc/auth_bloc.dart';
+import 'package:ms_app/features/auth/bloc/auth_state.dart';
 import 'package:ms_app/features/consolidator/custom_fields/custom_field_repository.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../models/person_model.dart';
@@ -138,6 +140,21 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
     }
   }
 
+  Future<void> _purge() async {
+    final person = _person;
+    if (person == null) return;
+
+    final confirmation = await showDialog<String>(
+      context: context,
+      builder: (_) => _PurgePersonDialog(fullName: person.fullName),
+    );
+    if (confirmation == null || confirmation.isEmpty || !mounted) return;
+
+    context.read<PersonBloc>().add(
+      PurgePerson(person.id, confirmation: confirmation),
+    );
+  }
+
   void _reactivate() {
     final person = _person;
     if (person == null) return;
@@ -157,7 +174,8 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
             SnackBar(content: Text(state.message)),
           );
           // Tras desactivar/reactivar, refrescar o volver al listado
-          if (state.message.contains('desactivada')) {
+          if (state.message.contains('desactivada') ||
+              state.message.contains('eliminada permanentemente')) {
             Navigator.of(context).pop(true);
           } else {
             context.read<PersonBloc>().add(
@@ -172,6 +190,10 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
       },
       builder: (context, state) {
         final loading = state is PersonLoading;
+        final authState = context.watch<AuthBloc>().state;
+        final isAdmin =
+            authState is AuthAuthenticated && authState.user.isAdmin;
+
         return Scaffold(
           appBar: const DefaultSectionAppBar(titleText: 'Detalle de persona'),
           floatingActionButton: _person != null
@@ -403,6 +425,18 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
                       icon: const Icon(Icons.person_add_alt_1_outlined),
                       label: const Text('Reactivar'),
                     ),
+                  if (isAdmin) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: loading ? null : _purge,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.error,
+                        side: BorderSide(color: colorScheme.error),
+                      ),
+                      icon: const Icon(Icons.delete_forever_outlined),
+                      label: const Text('Eliminar permanentemente'),
+                    ),
+                  ],
                 ],
               );
             },
@@ -485,6 +519,70 @@ class _InfoRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PurgePersonDialog extends StatefulWidget {
+  final String fullName;
+
+  const _PurgePersonDialog({required this.fullName});
+
+  @override
+  State<_PurgePersonDialog> createState() => _PurgePersonDialogState();
+}
+
+class _PurgePersonDialogState extends State<_PurgePersonDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final text = _controller.text.trim();
+    Navigator.of(context).pop(text.isEmpty ? null : text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Eliminar permanentemente'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Esta acción es irreversible. Se borrarán todos los datos de '
+            '"${widget.fullName}" (asistencia, campos, solicitudes, etc.).',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              labelText: 'Escribe "${widget.fullName}" o ELIMINAR',
+              border: const OutlineInputBorder(),
+            ),
+            autofocus: true,
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+          onPressed: _submit,
+          child: const Text('Eliminar para siempre'),
+        ),
+      ],
     );
   }
 }

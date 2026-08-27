@@ -54,6 +54,107 @@ class _PersonRegistrationListScreenState
     }
   }
 
+  Future<bool> _deleteRegistration(PersonRegistrationModel item) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar solicitud'),
+        content: Text(
+          '¿Eliminar la solicitud rechazada de "${item.listTitle}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return false;
+
+    try {
+      await widget.repository.deleteRegistration(item.id);
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitud eliminada')),
+      );
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+      return false;
+    }
+  }
+
+  Future<void> _cleanupRejected() async {
+    var count = _items.where((r) => r.deletable).length;
+    if (_status == 'rejected') {
+      count = _items.length;
+    } else if (count == 0) {
+      try {
+        final result = await widget.repository.getRegistrations(
+          status: 'rejected',
+        );
+        count = result.registrations.length;
+      } catch (_) {
+        // Seguimos con confirmación genérica.
+      }
+    }
+
+    if (!mounted) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Limpiar rechazadas'),
+        content: Text(
+          count > 0
+              ? 'Se eliminarán $count solicitud(es) rechazada(s). '
+                  'Esta acción no se puede deshacer.'
+              : 'Se eliminarán todas las solicitudes rechazadas. '
+                  'Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Limpiar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    try {
+      final deleted = await widget.repository.cleanupRejectedRegistrations();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            deleted == 1
+                ? '1 solicitud rechazada eliminada'
+                : '$deleted solicitudes rechazadas eliminadas',
+          ),
+        ),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   String _formatDate(DateTime? dt) {
     if (dt == null) return '';
     final local = dt.toLocal();
@@ -70,6 +171,18 @@ class _PersonRegistrationListScreenState
       appBar: DefaultSectionAppBar(
         titleText: 'Solicitudes web',
         customActions: [
+          PopupMenuButton<String>(
+            tooltip: 'Más acciones',
+            onSelected: (value) {
+              if (value == 'cleanup') _cleanupRejected();
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'cleanup',
+                child: Text('Limpiar rechazadas'),
+              ),
+            ],
+          ),
           IconButton(
             tooltip: 'Actualizar',
             onPressed: _loading ? null : _load,
@@ -223,53 +336,89 @@ class _PersonRegistrationListScreenState
                                   const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final item = _items[index];
-                                return Card(
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: item.isCreate
-                                          ? colorScheme.primary
-                                              .withValues(alpha: 0.15)
-                                          : Colors.orange
-                                              .withValues(alpha: 0.15),
-                                      child: Icon(
-                                        item.isCreate
-                                            ? Icons.person_add_alt_1
-                                            : Icons.edit_outlined,
-                                        color: item.isCreate
+                                return Dismissible(
+                                  key: ValueKey('reg-${item.id}'),
+                                  direction: item.deletable
+                                      ? DismissDirection.endToStart
+                                      : DismissDirection.none,
+                                  confirmDismiss: (_) async {
+                                    final deleted =
+                                        await _deleteRegistration(item);
+                                    if (deleted && mounted) _load();
+                                    return deleted;
+                                  },
+                                  background: Container(
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.only(right: 20),
+                                    color: colorScheme.error,
+                                    child: const Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  child: Card(
+                                    child: ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: item.isCreate
                                             ? colorScheme.primary
-                                            : Colors.orange,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      item.listTitle,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      '${item.kindLabel} · ${item.statusLabel}'
-                                      '${item.createdAt != null ? ' · ${_formatDate(item.createdAt)}' : ''}'
-                                      '${item.summary?.documentNumber != null ? '\nDoc: ${item.summary!.documentNumber}' : ''}',
-                                    ),
-                                    isThreeLine:
-                                        item.summary?.documentNumber != null,
-                                    trailing: const Icon(Icons.chevron_right),
-                                    onTap: () async {
-                                      final changed =
-                                          await Navigator.of(context)
-                                              .push<bool>(
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              PersonRegistrationDetailScreen(
-                                            repository: widget.repository,
-                                            registrationId: item.id,
-                                          ),
+                                                .withValues(alpha: 0.15)
+                                            : Colors.orange
+                                                .withValues(alpha: 0.15),
+                                        child: Icon(
+                                          item.isCreate
+                                              ? Icons.person_add_alt_1
+                                              : Icons.edit_outlined,
+                                          color: item.isCreate
+                                              ? colorScheme.primary
+                                              : Colors.orange,
                                         ),
-                                      );
-                                      if (changed == true && mounted) {
-                                        _load();
-                                      }
-                                    },
+                                      ),
+                                      title: Text(
+                                        item.listTitle,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        '${item.kindLabel} · ${item.statusLabel}'
+                                        '${item.createdAt != null ? ' · ${_formatDate(item.createdAt)}' : ''}'
+                                        '${item.summary?.documentNumber != null ? '\nDoc: ${item.summary!.documentNumber}' : ''}',
+                                      ),
+                                      isThreeLine:
+                                          item.summary?.documentNumber != null,
+                                      trailing: item.deletable
+                                          ? IconButton(
+                                              tooltip: 'Eliminar',
+                                              icon: Icon(
+                                                Icons.delete_outline,
+                                                color: colorScheme.error,
+                                              ),
+                                              onPressed: () async {
+                                                if (await _deleteRegistration(
+                                                  item,
+                                                )) {
+                                                  _load();
+                                                }
+                                              },
+                                            )
+                                          : const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        final changed =
+                                            await Navigator.of(context)
+                                                .push<bool>(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                PersonRegistrationDetailScreen(
+                                              repository: widget.repository,
+                                              registrationId: item.id,
+                                            ),
+                                          ),
+                                        );
+                                        if (changed == true && mounted) {
+                                          _load();
+                                        }
+                                      },
+                                    ),
                                   ),
                                 );
                               },

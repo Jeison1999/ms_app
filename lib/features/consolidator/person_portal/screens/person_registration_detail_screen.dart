@@ -124,34 +124,11 @@ class _PersonRegistrationDetailScreenState
   }
 
   Future<void> _reject() async {
-    final reasonController = TextEditingController();
-    final ok = await showDialog<bool>(
+    final reason = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rechazar solicitud'),
-        content: TextField(
-          controller: reasonController,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'Motivo (opcional)',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Rechazar'),
-          ),
-        ],
-      ),
+      builder: (_) => const _RejectRegistrationDialog(),
     );
-    final reason = reasonController.text;
-    reasonController.dispose();
-    if (ok != true || !mounted) return;
+    if (reason == null || !mounted) return;
 
     setState(() => _acting = true);
     try {
@@ -162,6 +139,48 @@ class _PersonRegistrationDetailScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Solicitud rechazada')),
+      );
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<void> _delete() async {
+    final reg = _reg;
+    if (reg == null || !reg.deletable) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar solicitud'),
+        content: Text(
+          '¿Eliminar esta solicitud rechazada de "${reg.listTitle}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _acting = true);
+    try {
+      await widget.repository.deleteRegistration(widget.registrationId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitud eliminada')),
       );
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -312,9 +331,72 @@ class _PersonRegistrationDetailScreenState
                                 ],
                               ),
                             ),
+                          )
+                        else if (reg.deletable)
+                          SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: _acting ? null : _delete,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor:
+                                        Theme.of(context).colorScheme.error,
+                                  ),
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: Text(
+                                    _acting ? 'Eliminando…' : 'Eliminar solicitud',
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                       ],
                     ),
+    );
+  }
+}
+
+class _RejectRegistrationDialog extends StatefulWidget {
+  const _RejectRegistrationDialog();
+
+  @override
+  State<_RejectRegistrationDialog> createState() =>
+      _RejectRegistrationDialogState();
+}
+
+class _RejectRegistrationDialogState extends State<_RejectRegistrationDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Rechazar solicitud'),
+      content: TextField(
+        controller: _controller,
+        maxLines: 3,
+        decoration: const InputDecoration(
+          labelText: 'Motivo (opcional)',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: const Text('Rechazar'),
+        ),
+      ],
     );
   }
 }

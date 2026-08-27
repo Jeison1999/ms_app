@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ms_app/Core/widgets/app_section_app_bar.dart';
+import 'package:ms_app/features/auth/bloc/auth_bloc.dart';
+import 'package:ms_app/features/auth/bloc/auth_state.dart';
 import '../custom_field_bloc.dart';
 import '../custom_field_repository.dart';
 import '../models/custom_field_model.dart';
@@ -66,6 +68,116 @@ class _CustomFieldListScreenState extends State<CustomFieldListScreen> {
     );
     if (ok == true && mounted) {
       context.read<CustomFieldBloc>().add(DeactivateCustomField(field.id));
+    }
+  }
+
+  bool _isAdmin(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    return authState is AuthAuthenticated && authState.user.isAdmin;
+  }
+
+  Future<void> _confirmPurge(CustomFieldModel field) async {
+    final isAdmin = _isAdmin(context);
+    final hasValues = field.valuesCount > 0;
+
+    if (hasValues && !isAdmin) {
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('No se puede eliminar'),
+          content: Text(
+            'El campo "${field.name}" tiene ${field.valuesCount} valor(es) '
+            'guardados. Solo un administrador puede borrarlo con datos. '
+            'Contacta al admin o desactiva el campo.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    var force = false;
+    if (hasValues && isAdmin) {
+      var acknowledged = false;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: const Text('Eliminar permanentemente'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Se borrará el campo "${field.name}" y '
+                  '${field.valuesCount} valor(es) asociados. '
+                  'Esta acción no se puede deshacer.',
+                ),
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: acknowledged,
+                  onChanged: (v) =>
+                      setDialogState(() => acknowledged = v ?? false),
+                  title: const Text('Entiendo que se perderán los datos'),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error,
+                ),
+                onPressed: acknowledged ? () => Navigator.of(ctx).pop(true) : null,
+                child: const Text('Eliminar'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (ok != true || !mounted) return;
+      force = true;
+    } else {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Eliminar permanentemente'),
+          content: Text(
+            '¿Borrar el campo "${field.name}" de forma permanente? '
+            'No tiene valores guardados.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+
+    if (mounted) {
+      context.read<CustomFieldBloc>().add(
+        PurgeCustomField(field.id, force: force),
+      );
     }
   }
 
@@ -181,8 +293,10 @@ class _CustomFieldListScreenState extends State<CustomFieldListScreen> {
                             subtitle: Text(
                               '${CustomFieldModel.typeLabel(field.fieldType)}'
                               ' · ${field.key}'
-                              '${field.required ? ' · Obligatorio' : ''}'
+                              '${field.required ? ' · Oblig. app' : ''}'
                               '${field.includeInPublicForm ? ' · Web' : ''}'
+                              '${field.includeInPublicForm && field.publicRequired ? ' · Oblig. web' : ''}'
+                              '${field.valuesCount > 0 ? ' · ${field.valuesCount} valor(es)' : ''}'
                               '${field.active ? '' : ' · Inactivo'}',
                             ),
                             trailing: PopupMenuButton<String>(
@@ -195,6 +309,8 @@ class _CustomFieldListScreenState extends State<CustomFieldListScreen> {
                                   context.read<CustomFieldBloc>().add(
                                     ReactivateCustomField(field.id),
                                   );
+                                } else if (value == 'purge') {
+                                  _confirmPurge(field);
                                 }
                               },
                               itemBuilder: (_) => [
@@ -211,6 +327,19 @@ class _CustomFieldListScreenState extends State<CustomFieldListScreen> {
                                   const PopupMenuItem(
                                     value: 'reactivate',
                                     child: Text('Reactivar'),
+                                  ),
+                                if (field.purgeableWithoutForce ||
+                                    _isAdmin(context))
+                                  PopupMenuItem(
+                                    value: 'purge',
+                                    child: Text(
+                                      'Eliminar permanentemente',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .error,
+                                      ),
+                                    ),
                                   ),
                               ],
                             ),

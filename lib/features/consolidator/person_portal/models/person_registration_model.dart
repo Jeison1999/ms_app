@@ -61,6 +61,7 @@ class PersonRegistrationModel {
   final Map<String, dynamic>? payload;
   final Map<String, dynamic>? currentPerson;
   final List<PersonRegistrationDiff> diff;
+  final bool deletable;
 
   PersonRegistrationModel({
     required this.id,
@@ -79,6 +80,7 @@ class PersonRegistrationModel {
     this.payload,
     this.currentPerson,
     this.diff = const [],
+    this.deletable = false,
   });
 
   bool get isPending => status == 'pending';
@@ -146,6 +148,8 @@ class PersonRegistrationModel {
             ),
           )
           .toList(),
+      deletable: json['deletable'] as bool? ??
+          (json['status'] as String?) == 'rejected',
     );
   }
 }
